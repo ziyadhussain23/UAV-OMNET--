@@ -1,0 +1,3 @@
+config,hash_mode,num_runs,phase2_mean_latency_ms,phase2_mean_compute_ms,phase2_mean_sha3_ms,phase2_mean_spongent_ms,phase2_mean_net_ms,phase2_mean_overhead_bytes,phase3_mean_latency_ms,phase3_mean_compute_ms,phase3_mean_sha3_ms,phase3_mean_spongent_ms,phase3_mean_net_ms,phase3_mean_overhead_bytes,auth_success_rate
+StadiumSHA3,sha3,1,0.671806,0.007206,0.003386,0.0,0.6646,175.0,0.47601,0.009188,0.006277,0.0,0.466822,104.0,1.0
+StadiumSPONGENT,spongent,1,7.367551,6.702951,0.0,6.697018,0.6646,175.0,14.535405,14.068582,0.0,14.062166,0.466822,104.0,1.0

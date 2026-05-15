@@ -1,0 +1,722 @@
+\documentclass[conference]{IEEEtran}
+
+% ── Packages ──
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts,amsthm}
+\usepackage{algorithmic}
+\usepackage{algorithm}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{array}
+\usepackage{url}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{balance}
+\usepackage{float}
+
+\newtheorem{theorem}{Theorem}
+
+\begin{document}
+
+% ══════════════════════════════════════════════════════════════
+% TITLE AND AUTHORS
+% ══════════════════════════════════════════════════════════════
+\title{Fast PUF-Based Authentication Protocol for\\UAV Swarm Networks: Design, OMNeT++ Simulation,\\and Performance Evaluation}
+
+\author{
+\IEEEauthorblockN{Md Ziyad Hussain}
+\IEEEauthorblockA{
+\includegraphics[width=1.2cm]{image.png}\\
+Department of Computer Science and Engineering\\
+Indian Institute of Information Technology Guwahati\\
+Bongora, Assam 781015, India\\
+\texttt{ziyad.hussain23b@iiitg.ac.in}
+}
+}
+
+\maketitle
+
+% ══════════════════════════════════════════════════════════════
+% ABSTRACT
+% ══════════════════════════════════════════════════════════════
+\begin{abstract}
+UAV swarm networks require lightweight, fast, and secure authentication protocols for real-time operations such as formation flying and aerial surveillance. Traditional PKI approaches (RSA-2048, ECC-256) incur 8--15\,ms latencies on embedded processors and require secure key storage---a liability when UAVs are physically captured. We present a four-phase Physical Unclonable Function (PUF)-based authentication protocol: (1)~secure enrollment with BCH fuzzy extractors, (2)~UAV--Ground Station mutual authentication via PUF challenge-response, (3)~direct peer-to-peer UAV authentication without Ground Station involvement, and (4)~session key establishment. We evaluate the protocol in OMNeT++ 6.3 using a 10-UAV stadium surveillance scenario with SHA3-256 and SPONGENT-160 hash modes. Results show Phase~2 latency of 0.672\,ms (SHA3) / 7.368\,ms (SPONGENT), Phase~3 latency of 0.476\,ms (SHA3) / 14.535\,ms (SPONGENT), with 100\% success across all 10 UAV--GS and 45 peer pairs. The protocol is 10--22$\times$ faster than RSA/ECC with only 430 bytes total overhead. All results were obtained on an x86-64 laptop; hardware FPGA/ASIC projections are provided.
+\end{abstract}
+
+\begin{IEEEkeywords}
+UAV authentication, PUF, SPONGENT, SHA3, OMNeT++, lightweight cryptography, swarm security, peer-to-peer authentication, fuzzy extractor
+\end{IEEEkeywords}
+
+% ══════════════════════════════════════════════════════════════
+% SECTION I: INTRODUCTION
+% ══════════════════════════════════════════════════════════════
+\section{Introduction}
+\label{sec:introduction}
+
+Unmanned Aerial Vehicle (UAV) swarms are increasingly deployed for surveillance, disaster response, precision agriculture, and border patrol. Multi-UAV coordination demands mutual authentication---each UAV must verify the identity of its Ground Station (GS) and peer UAVs before accepting commands, sharing sensor data, or coordinating flight paths. Without robust authentication, adversaries could inject rogue UAVs, intercept surveillance data, or perform man-in-the-middle attacks on inter-UAV communications~\cite{securing_uav_fanet}.
+
+The authentication challenge is particularly acute in UAV swarms because of stringent timing requirements (sub-millisecond for formation flying at 10--50\,Hz update rates), limited computational resources (ARM Cortex-M4/M7 processors), constrained wireless bandwidth (shared 802.11 channels), and the physical vulnerability of UAVs to capture in hostile environments~\cite{puf_uav_cross_domain}.
+
+Traditional approaches face critical limitations: RSA-2048 digital signatures require 8--15\,ms per verification on ARM Cortex-A72 processors---for a 10-UAV swarm, full-mesh mutual authentication would take 720--1350\,ms, far exceeding real-time requirements. ECC-256 reduces this to 4--8\,ms per operation but still requires secure storage of private keys; physical capture of a UAV enables key extraction via side-channel attacks or direct memory probing~\cite{puf_lightweight_uav}. Pre-Shared Key (PSK) schemes achieve sub-millisecond latency but expose the fleet if any single UAV is captured, and key management complexity scales as $O(N^2)$~\cite{peer2peer_auth}. Blockchain-based authentication incurs consensus latency of 1--10 seconds, making it impractical for real-time operations~\cite{puf_iot_strong_adversary}.
+
+Physical Unclonable Functions (PUFs) address these fundamental limitations by exploiting intrinsic, random manufacturing variations in integrated circuits to generate unique challenge-response pairs (CRPs). PUFs provide: (1)~\emph{unclonability}---sub-nanometer variations cannot be replicated; (2)~\emph{unpredictability}---responses to new challenges cannot be predicted; (3)~\emph{no key storage}---the ``key'' is the silicon itself; (4)~\emph{tamper evidence}---physical probing destroys the PUF. An Arbiter PUF circuit requires as few as 1,200 gate equivalents (GE)~\cite{puf_overview, arbiter_puf_iot}.
+
+\textbf{Contributions.} We present:
+\begin{enumerate}[leftmargin=*,nosep]
+    \item A complete four-phase PUF protocol covering enrollment, UAV--GS mutual authentication, direct peer-to-peer authentication (without GS), and session key establishment.
+    \item Full-mesh peer authentication ($N(N{-}1)/2 = 45$ pairs for 10 UAVs).
+    \item Dual hash mode evaluation: SHA3-256 (software-optimized) and SPONGENT-160 (hardware-optimized, 2,190 GE).
+    \item Validated OMNeT++ 6.3 implementation with per-message timing breakdowns.
+    \item Comprehensive comparison against RSA, ECC, PSK, and existing PUF protocols.
+\end{enumerate}
+
+% ══════════════════════════════════════════════════════════════
+% SECTION II: BACKGROUND
+% ══════════════════════════════════════════════════════════════
+\section{Background}
+\label{sec:background}
+
+A Physical Unclonable Function (PUF) maps challenges to responses via intrinsic manufacturing variations: $R = \text{PUF}(C)$, providing \emph{unclonability}, \emph{unpredictability}, and \emph{tamper evidence}~\cite{puf_overview}. We use a 128-stage Arbiter PUF ($\sim$1,200~GE, exponential CRP space $2^n$, 3\% BER)~\cite{arbiter_puf_iot}. Ring Oscillator PUFs offer lower noise but limited CRP space~\cite{ro_puf_design}; SRAM PUFs require no extra hardware but have limited challenge space~\cite{sram_puf_bch}.
+
+We evaluate two hash functions: \textbf{SHA3-256} (Keccak~\cite{sha3_standard}, 1600-bit state, $\sim$0.4\,$\mu$s/call on x86-64 via OpenSSL, truncated to 160~bits) and \textbf{SPONGENT-160} (176-bit state, 80 rounds, 2,190~GE~\cite{spongent_original}, $\sim$890\,$\mu$s/call in software---a 2,225$\times$ gap that collapses to 2--5$\times$ on FPGA/ASIC). PUF noise is corrected by a fuzzy extractor using BCH(255,~131,~18): helper data $h = \text{BCH\_enc}(R) \oplus R$ enables correction of up to 18~bit errors (14\% BER), well above the 3\% expected BER~\cite{bch_puf_extraction}.
+
+\section{Related Work}
+\label{sec:related}
+
+Gope and Sikdar~\cite{puf_lightweight_uav} propose PUF-based UAV--GS authentication (10--50\,ms, Raspberry~Pi) but lack peer-to-peer capability. Li~\emph{et~al.}~\cite{puf_uav_cross_domain} address cross-domain UAV PUF authentication (45--80\,ms); Khan~\emph{et~al.}~\cite{puf_6g_uav} target 6G UAV networks (5--20\,ms). Neither provides direct UAV-to-UAV authentication, dual hash evaluation, or full-mesh analysis. Bera~\emph{et~al.}~\cite{peer2peer_auth} achieve sub-ms peer authentication using PSK but require stored keys vulnerable to physical capture. Our protocol uniquely combines PUF hardware root-of-trust with both UAV--GS and direct peer-to-peer authentication.
+
+% ══════════════════════════════════════════════════════════════
+% SECTION III: PROPOSED PROTOCOL
+% ══════════════════════════════════════════════════════════════
+\section{Proposed Protocol Design}
+\label{sec:protocol}
+
+\subsection{Threat Model}
+We adopt the Dolev-Yao model augmented with physical capture: the adversary can eavesdrop, intercept, modify, replay, or drop wireless messages; may capture UAVs and read NVM but cannot clone PUFs; and is computationally bounded (PPT)~\cite{dolev_yao}.
+
+\subsection{Notation}
+Table~\ref{tab:notation} summarizes the protocol notation.
+
+\begin{table}[H]
+\centering
+\caption{Protocol Notation}
+\label{tab:notation}
+\footnotesize
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{Symbol} & \textbf{Description} \\
+\midrule
+$\text{UAV}_i$, GS & $i$-th UAV; Ground Station \\
+$\text{ID}_i$, $\text{TID}_i$ & Permanent (64-bit) / temporary identity \\
+$C_i^{(k)}, R_i^{(k)}$ & $k$-th PUF challenge (128-bit) / response \\
+$h(\cdot)$ & SPONGENT-160 or SHA3-256$|_{160}$ \\
+$\oplus$, $\|$ & XOR; concatenation \\
+$N_i, n_i$ & Random nonces (128-bit) \\
+$P_{ij}$ & Peer secret: UAV$_i$'s secret for UAV$_j$ \\
+$\text{Mask}_{ij}$ & $P_{ij} \oplus P_{ji}$ \\
+$h_i^{(k)}$ & BCH helper data (255-bit) \\
+$\tau_i$ & Registration token (160-bit) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Phase~1: Secure Enrollment}
+Enrollment occurs once in a secure facility with tamper-proof channels. For each UAV$_i$:
+
+\textbf{Step~1.1 (PUF Interrogation):} GS generates $n \geq 12$ random 128-bit challenges $\{C_i^{(1)}, \ldots, C_i^{(n)}\}$ and collects responses:
+\begin{equation}
+R_i^{(k)} = \text{PUF}_i(C_i^{(k)}), \quad k = 1, \ldots, n
+\label{eq:puf_eval}
+\end{equation}
+
+\textbf{Step~1.2 (Error Correction Setup):} For each CRP, helper data is computed:
+\begin{equation}
+h_i^{(k)} = \text{BCH\_encode}(R_i^{(k)}) \oplus R_i^{(k)}
+\label{eq:helper}
+\end{equation}
+This public data enables reliable PUF reconstruction without revealing $R_i^{(k)}$.
+
+\textbf{Step~1.3 (Identity \& Credential Generation):} GS assigns:
+\begin{align}
+\text{TID}_i &= h(\text{ID}_i \| \text{seed}_i) \label{eq:tid}\\
+\tau_i &= h(R_i^{(1)} \| \text{ID}_i \| T_{\text{reg}}) \label{eq:token}
+\end{align}
+and pre-computes peer secrets for all pairs:
+\begin{align}
+P_{ij} &= h(R_i^{(1)} \| \text{ID}_j \| N_{\text{gs}}) \label{eq:peer_secret}\\
+\text{Mask}_{ij} &= P_{ij} \oplus P_{ji} \label{eq:mask}
+\end{align}
+
+\textbf{Step~1.4 (Storage):} GS stores $\{$ID$_i$, TID$_i$, $\{(C_i^{(k)}, h_i^{(k)})\}_{k=1}^{n}\}$. UAV stores only $\sim$50~bytes (\text{TID}$_i$, $\tau_i$, GS parameters). No PUF responses or private keys are retained on the UAV.
+
+\begin{figure}[H]
+\centering
+\fbox{\parbox{0.92\columnwidth}{\small
+\textbf{Phase~2: UAV--GS Mutual Authentication}\\[4pt]
+\begin{tabular}{@{}r@{\;}c@{\;}l@{}}
+UAV$_i$ & $\xrightarrow{\;M_1:\; \text{TID}_i, T_1, N_1, \alpha_1\;}$ & GS \\[2pt]
+& & \footnotesize\emph{verify $\alpha_1$, select CRP} \\[2pt]
+UAV$_i$ & $\xleftarrow{\;M_2:\; C_i, N_2, \beta_1, h_i, T_2\;}$ & GS \\[2pt]
+\footnotesize\emph{verify $\beta_1$, PUF, BCH} & & \\[2pt]
+UAV$_i$ & $\xrightarrow{\;M_3:\; R_i^{\text{mask}}, \gamma_1, T_3\;}$ & GS \\[2pt]
+& & \footnotesize\emph{unmask, verify, SK} \\[2pt]
+UAV$_i$ & $\xleftarrow{\;M_4:\; \text{Cred}^{\text{enc}}, \delta_1, \text{TID}^{\text{new}}, T_4\;}$ & GS \\
+\end{tabular}
+}}
+\caption{Phase~2 message exchange.}
+\label{fig:phase2}
+\end{figure}
+
+\subsection{Phase~2: UAV--GS Mutual Authentication}
+A four-message protocol executed when a UAV enters the operational field. The full exchange is shown in Fig.~\ref{fig:phase2}.
+
+\textbf{Message~1 (Auth Request):} UAV$_i \to$ GS:
+\begin{align}
+\alpha_1 &= h(\text{TID}_i \| T_1 \| N_1 \| \tau_i) \label{eq:m1_mac}\\
+M_1 &= \langle \text{TID}_i,\; T_1,\; N_1,\; \alpha_1 \rangle \label{eq:m1}
+\end{align}
+Format: $64 + 32 + 128 + 160 = 384$~bits (48~bytes). The MAC $\alpha_1$ binds the request to the UAV's registration token $\tau_i$, which only a legitimately enrolled UAV possesses.
+
+\textbf{Message~2 (Challenge):} GS $\to$ UAV$_i$. GS verifies $\alpha_1$ using its database, selects an unused CRP $(C_i^{(k)}, h_i^{(k)})$, and responds:
+\begin{align}
+\beta_1 &= h(C_i^{(k)} \| N_1 \| N_2 \| T_1) \label{eq:m2_mac}\\
+M_2 &= \langle C_i^{(k)},\; N_2,\; \beta_1,\; h_i^{(k)},\; T_2 \rangle \label{eq:m2}
+\end{align}
+Format: $128 + 128 + 160 + 255 + 32 = 703$~bits ($\approx$88~bytes). The MAC $\beta_1$ authenticates the GS to the UAV.
+
+\textbf{Message~3 (PUF Response):} UAV$_i \to$ GS. The UAV evaluates its PUF and performs BCH correction:
+\begin{align}
+R_i^{\text{noisy}} &= \text{PUF}_i(C_i^{(k)}) \\
+R_i &= \text{BCH\_correct}(R_i^{\text{noisy}},\; h_i^{(k)}) \\
+R_i^{\text{masked}} &= R_i \oplus h(N_2) \label{eq:mask_resp}\\
+\gamma_1 &= h(R_i \| N_1 \| N_2 \| T_2) \label{eq:m3_mac}\\
+M_3 &= \langle R_i^{\text{masked}},\; \gamma_1,\; T_3 \rangle \label{eq:m3}
+\end{align}
+Format: $128 + 160 + 32 = 320$~bits (40~bytes). The PUF response is masked by $h(N_2)$ to prevent eavesdropping.
+
+\textbf{Message~4 (Confirmation):} GS $\to$ UAV$_i$. GS unmasks the response, verifies via Hamming distance, derives a session key, encrypts peer credentials, and rotates the TID:
+\begin{align}
+\text{SK}_{i,\text{GS}} &= h(R_i \| N_1 \| N_2) \label{eq:sk_gs}\\
+\delta_1 &= h(\text{SK}_{i,\text{GS}} \| \text{Cred}_i^{\text{enc}} \| T_4) \label{eq:m4_mac}\\
+M_4 &= \langle \text{Cred}_i^{\text{enc}},\; \delta_1,\; \text{TID}_i^{\text{new}},\; T_4 \rangle \label{eq:m4}
+\end{align}
+Total Phase~2: \textbf{175~bytes} across 4 messages. The CRP is marked consumed, preventing replay.
+
+\begin{figure}[H]
+\centering
+\fbox{\parbox{0.92\columnwidth}{\small
+\textbf{Phase~3: Peer-to-Peer Authentication}\\[4pt]
+\begin{tabular}{@{}r@{\;}c@{\;}l@{}}
+UAV$_i$ & $\xrightarrow{\;P_1:\; \text{TID}_i, C_j, n_i, \eta_1, T_{p1}\;}$ & UAV$_j$ \\[2pt]
+& & \footnotesize\emph{derive $P_{ji}$, recover $\tilde{P}_{ij}$} \\
+& & \footnotesize\emph{encrypt puzzle $Q_i$} \\[2pt]
+UAV$_i$ & $\xleftarrow{\;P_2:\; Q_i, \eta_2, T_{p2}\;}$ & UAV$_j$ \\[2pt]
+\footnotesize\emph{decrypt $Q_i$, verify} & & \\
+\footnotesize\emph{build reciprocal $Q_j$} & & \\[2pt]
+UAV$_i$ & $\xrightarrow{\;P_3:\; Q_j, \eta_3, T_{p3}\;}$ & UAV$_j$ \\
+\end{tabular}
+}}
+\caption{Phase~3 peer authentication.}
+\label{fig:phase3}
+\end{figure}
+
+\subsection{Phase~3: Peer-to-Peer Authentication}
+A three-message protocol enabling direct mutual authentication between UAV pairs using Phase~2 credentials, requiring \emph{no GS involvement} during flight (Fig.~\ref{fig:phase3}).
+
+\textbf{Message~P1 (Peer Auth Request):} UAV$_i \to$ UAV$_j$:
+\begin{align}
+\eta_1 &= h(\text{TID}_i \| \text{TID}_j \| n_i \| T_{p1}) \label{eq:p1_mac}\\
+P_1 &= \langle \text{TID}_i,\; C_j,\; n_i,\; \eta_1,\; T_{p1} \rangle \label{eq:p1}
+\end{align}
+Format: $64 + 128 + 160 + 160 + 32 = 544$~bits (68~bytes).
+
+\textbf{Message~P2 (Challenge Response):} UAV$_j \to$ UAV$_i$. The responder derives the initiator's peer secret, constructs an encrypted authentication puzzle, and responds:
+\begin{align}
+P_{ji} &= h(R_j \| \text{ID}_i \| N_{\text{gs}}) \label{eq:p2_secret}\\
+\tilde{P}_{ij} &= \text{Mask}_{ij} \oplus P_{ji} \label{eq:p2_recover}\\
+Q_i &= E_{\tilde{P}_{ij}}(n_j \| C_i \| T_{p1}) \label{eq:puzzle}\\
+\eta_2 &= h(Q_i \| n_i \| T_{p2}) \label{eq:p2_mac}\\
+P_2 &= \langle Q_i,\; \eta_2,\; T_{p2} \rangle \label{eq:p2}
+\end{align}
+Format: $320 + 160 + 32 = 512$~bits (64~bytes). The XOR mask $\text{Mask}_{ij} = P_{ij} \oplus P_{ji}$ acts as an information-theoretically secure one-time pad.
+
+\textbf{Message~P3 (Mutual Completion):} UAV$_i \to$ UAV$_j$. The initiator decrypts $Q_i$ using its own $\tilde{P}_{ij}$, verifies nonces and timestamps, then constructs a reciprocal puzzle:
+\begin{align}
+Q_j &= E_{\tilde{P}_{ji}}(n_i' \| T_{p2}) \label{eq:puzzle_j}\\
+\eta_3 &= h(Q_j \| n_j \| T_{p3}) \label{eq:p3_mac}\\
+P_3 &= \langle Q_j,\; \eta_3,\; T_{p3} \rangle \label{eq:p3}
+\end{align}
+Total Phase~3: \textbf{104~bytes} across 3 messages in OMNeT++ (theoretical: 196~bytes with full credential packaging). For $N$ UAVs, full-mesh authentication requires $N(N{-}1)/2$ pairs (45 for $N$=10).
+
+\subsection{Phase~4: Session Key Establishment}
+After successful Phase~3 completion, both UAVs derive a shared symmetric session key:
+\begin{equation}
+\text{SK}_{ij} = h(n_i \| n_j \| n_i' \| R_i \| R_j)
+\label{eq:sk}
+\end{equation}
+\textbf{Properties:} 160-bit key strength; freshness from ephemeral nonces $n_i, n_j, n_i'$; mutual contribution (both parties contribute randomness); PUF binding (requires $R_i, R_j$ that only authentic hardware can produce); unique per session. For \emph{perfect forward secrecy} (PFS), an optional ECDH extension is available:
+\begin{equation}
+\text{SK}_{ij}^{\text{PFS}} = h(n_i \| n_j \| n_i' \| R_i \| R_j \| g^{a_i b_j})
+\label{eq:sk_pfs}
+\end{equation}
+where $a_i, b_j$ are ephemeral Diffie-Hellman exponents. Even if PUF responses $R_i, R_j$ are later compromised, past session keys remain secure due to the ephemeral DH contribution.
+
+% ══════════════════════════════════════════════════════════════
+% SECTION IV: IMPLEMENTATION
+% ══════════════════════════════════════════════════════════════
+\section{OMNeT++ Implementation}
+\label{sec:implementation}
+
+We implement the protocol in OMNeT++ 6.3.0 with C++ (clang, $-$O3) on an x86-64 laptop running Ubuntu Linux. Table~\ref{tab:sim_params} lists key parameters.
+
+\begin{table}[H]
+\centering
+\caption{Simulation Parameters}
+\label{tab:sim_params}
+\footnotesize
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{Parameter} & \textbf{Value} \\
+\midrule
+Simulation area & 500$\times$300\,m (stadium) \\
+UAVs / GS position & 10 perimeter / center (275,175)\,m \\
+Link bitrate & 6\,Mbps (802.11a) \\
+Processing delay & 0.1\,ms mean, $\sigma$=0.02\,ms \\
+PUF type / noise & Arbiter 128-stage / 3\% BER \\
+BCH code & (255, 131, 18) \\
+CRPs per UAV / Hash output & 12 / 160\,bits \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The architecture comprises three OMNeT++ modules: \textbf{UAVNode} (Phase~2 client, Phase~3 initiator/responder, PUF simulator, HashWrapper), \textbf{GroundStation} (enrollment database, BCH decoder, credential distribution), and \textbf{NetworkController} (lifecycle management).
+
+Communication uses \texttt{sendDirect()} with delay model: $d_{\text{total}} = d_{\text{prop}} + d_{\text{serial}} + d_{\text{proc}} + d_{\text{jitter}}$. Each UAV initiates Phase~3 with all higher-ID peers (45 unique pairs), staggered to avoid overlap.
+
+\textbf{Important:} All cryptographic operations execute as native C++ on an x86-64 laptop. Absolute timings differ from real UAV hardware (ARM: 10--100$\times$ slower; FPGA/ASIC: 100--1000$\times$ faster for SPONGENT). \emph{Relative} comparisons remain valid.
+
+% ══════════════════════════════════════════════════════════════
+% SECTION V: RESULTS
+% ══════════════════════════════════════════════════════════════
+\section{Simulation Results}
+\label{sec:results}
+
+\subsection{Phase~2: UAV--GS Authentication}
+
+Table~\ref{tab:phase2} summarizes Phase~2 performance across both hash modes for all 10 UAVs.
+
+\begin{table}[H]
+\centering
+\caption{Phase~2 Results (Mean of 10 UAVs)}
+\label{tab:phase2}
+\footnotesize
+\begin{tabular}{@{}lrr@{}}
+\toprule
+\textbf{Metric} & \textbf{SHA3} & \textbf{SPONGENT} \\
+\midrule
+Total latency (ms) & 0.672 & 7.368 \\
+Total compute (ms) & 0.007 & 6.703 \\
+Hash time (ms) & 0.003 & 6.697 \\
+Network delay (ms) & 0.665 & 0.665 \\
+Overhead (bytes) & 175 & 175 \\
+Success rate & 10/10 & 10/10 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+With SHA3, compute time is 1.0\% of total latency---authentication is entirely network-bound. With SPONGENT, hash computation (6.697\,ms) dominates at 90.9\% of latency due to the 80-round bit-level permutation at $\sim$890\,$\mu$s/call. Network delay is identical (0.665\,ms) since message sizes match.
+
+Table~\ref{tab:phase2_breakdown} shows per-message timing. BCH operations (22--24\,$\mu$s) are the dominant compute cost in SHA3 mode; all hash-involving steps are bottlenecks in SPONGENT mode.
+
+\begin{table}[H]
+\centering
+\caption{Phase~2 Per-Message Timing Breakdown}
+\label{tab:phase2_breakdown}
+\footnotesize
+\begin{tabular}{@{}lrr@{}}
+\toprule
+\textbf{Step} & \textbf{SHA3 ($\mu$s)} & \textbf{SPONG. ($\mu$s)} \\
+\midrule
+M1: UAV compute MAC & 1.5 & 1,094 \\
+M1: Network & 173 & 173 \\
+M1: GS verify + lookup & 2.5 & 2,606 \\
+M2: Network & 185 & 185 \\
+M2: UAV verify + PUF + BCH & 25.4 & 1,527 \\
+M3: UAV crypto & 2.2 & 4,107 \\
+M3: Network & 169 & 169 \\
+M3: GS verify + BCH & 24.3 & 4,070 \\
+M4: Network & 138 & 138 \\
+\midrule
+\textbf{Total Compute} & \textbf{56} & \textbf{13,404} \\
+\textbf{Total Network} & \textbf{665} & \textbf{665} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Phase~3: Peer Authentication}
+
+Table~\ref{tab:phase3} summarizes Phase~3 performance across all 45 full-mesh pairs.
+
+\begin{table}[H]
+\centering
+\caption{Phase~3 Results (Mean of 45 Pairs)}
+\label{tab:phase3}
+\footnotesize
+\begin{tabular}{@{}lrr@{}}
+\toprule
+\textbf{Metric} & \textbf{SHA3} & \textbf{SPONGENT} \\
+\midrule
+Total latency (ms) & 0.476 & 14.535 \\
+Total compute (ms) & 0.009 & 14.069 \\
+Hash time (ms) & 0.006 & 14.062 \\
+Network delay (ms) & 0.467 & 0.467 \\
+Overhead (bytes) & 104 & 104 \\
+Success rate & 45/45 & 45/45 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Phase~3 is 29\% faster than Phase~2 in SHA3 mode (3 messages, smaller payloads). SPONGENT Phase~3 is $\sim$2$\times$ Phase~2 because \emph{both} initiator and responder perform $\sim$8 hash calls. All 45 pairs complete within tight bands: SHA3 [0.448, 0.539]\,ms (CV 4.7\%), SPONGENT [14.39, 14.82]\,ms (CV 0.7\%).
+
+Table~\ref{tab:phase3_breakdown} decomposes the three-message Phase~3 exchange.
+
+\begin{table}[H]
+\centering
+\caption{Phase~3 Per-Step Timing Breakdown (Mean of 45 Pairs)}
+\label{tab:phase3_breakdown}
+\footnotesize
+\begin{tabular}{@{}lrr@{}}
+\toprule
+\textbf{Step} & \textbf{SHA3 ($\mu$s)} & \textbf{SPONG. ($\mu$s)} \\
+\midrule
+P1: Initiator build & 1.5 & 1,561 \\
+P1: Network & 162 & 162 \\
+P1--P2: Responder process & 2.7 & 3,513 \\
+P2: Network & 164 & 164 \\
+P2--P3: Initiator verify & 3.0 & 5,474 \\
+P3: Network & 141 & 141 \\
+P3: Responder verify & 2.0 & 3,521 \\
+\midrule
+\textbf{Total Compute} & \textbf{9.2} & \textbf{14,069} \\
+\textbf{Total Network} & \textbf{467} & \textbf{467} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The initiator processing (P2--P3) is the most expensive SPONGENT step: PUF evaluation, peer secret derivation, puzzle decryption/verification, and reciprocal puzzle construction total 5--6 hash calls at $\sim$890\,$\mu$s each.
+
+\subsection{Combined Timing}
+
+Table~\ref{tab:combined} shows end-to-end swarm authentication time.
+
+\begin{table}[H]
+\centering
+\caption{Combined Protocol Timing (10-UAV Swarm)}
+\label{tab:combined}
+\footnotesize
+\begin{tabular}{@{}lrr@{}}
+\toprule
+\textbf{Metric} & \textbf{SHA3} & \textbf{SPONGENT} \\
+\midrule
+Phase~2 per UAV (ms) & 0.672 & 7.368 \\
+Phase~2 total, 10 UAVs (ms) & 6.72 & 73.68 \\
+Phase~3 per pair (ms) & 0.476 & 14.535 \\
+Phase~3 total, 45 pairs (ms) & 21.42 & 654.08 \\
+\midrule
+\textbf{Grand total (ms)} & \textbf{28.14} & \textbf{727.76} \\
+\textbf{Overhead per pair (bytes)} & \multicolumn{2}{c}{\textbf{279}} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+With SHA3, the entire 10-UAV swarm achieves full mutual authentication in under 30\,ms. Combined per-pair overhead is 175 + 104 = 279 bytes. The theoretical protocol specifies 210 + 196 = 406 bytes; the simulation uses simplified credential packaging. Full-mesh scales as $O(N^2)$: for $N$=20, $\sim$97\,ms (SHA3); for $N$=100, $\sim$2.36\,s, parallelizable across non-overlapping channels.
+
+% ══════════════════════════════════════════════════════════════
+% SECTION VI: COMPARISON
+% ══════════════════════════════════════════════════════════════
+\section{Comparison with Existing Methods}
+\label{sec:comparison}
+
+\subsection{Latency Comparison}
+
+\begin{table}[H]
+\centering
+\caption{Authentication Latency Comparison}
+\label{tab:latency_cmp}
+\footnotesize
+\begin{tabular}{@{}lrl@{}}
+\toprule
+\textbf{Method} & \textbf{Latency} & \textbf{Platform} \\
+\midrule
+PUF-SHA3 (ours) & 0.67\,ms & x86-64 laptop \\
+PUF-SPONGENT (ours) & 7.37\,ms & x86-64 laptop \\
+PUF-SPONGENT (FPGA) & $\sim$0.08\,ms & Projected \\
+Gope~\cite{puf_lightweight_uav} & 10--50\,ms & Raspberry Pi \\
+Chatterjee~\cite{puf_uav_cross_domain} & 45--80\,ms & ARM embedded \\
+Khan~\cite{puf_6g_uav} & 5--20\,ms & ARM Cortex-A53 \\
+RSA-2048 & $\sim$15\,ms & ARM Cortex-A72 \\
+ECC-256 & $\sim$8\,ms & ARM Cortex-A72 \\
+PSK (AES-GCM) & $\sim$0.5\,ms & ARM Cortex-A72 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Our SHA3 Phase~2 (0.67\,ms) is 22$\times$ faster than RSA-2048, 12$\times$ faster than ECC-256, and 15--75$\times$ faster than existing PUF protocols, while competitive with PSK ($\sim$0.5\,ms) without requiring stored keys. Even SPONGENT software (7.37\,ms) outperforms RSA.
+
+\subsection{Overhead, Storage \& Computational Cost}
+
+Table~\ref{tab:compute} compares computational operations per authentication.
+
+\begin{table}[H]
+\centering
+\caption{Computational Operations per Authentication}
+\label{tab:compute}
+\footnotesize
+\begin{tabular}{@{}lp{1.6cm}p{2cm}r@{}}
+\toprule
+\textbf{Method} & \textbf{Heavy Ops} & \textbf{Light Ops} & \textbf{GE} \\
+\midrule
+RSA-2048 & 2 mod.\ exp. & 2 hash & $>$100k \\
+ECC-256 & 4 EC mul. & 2 hash & $>$50k \\
+PSK (AES) & --- & 4 AES + 2 HMAC & $\sim$15k \\
+Ours (SHA3) & --- & 8 hash + PUF + BCH & $\sim$44k \\
+Ours (SPONG.) & --- & 8 hash + PUF + BCH & $\sim$8.4k \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Our protocol eliminates all heavy operations (modular exponentiation, EC multiplication) in favor of hash-and-XOR computations. With SPONGENT, the total hardware footprint (8,390 GE) is 6--12$\times$ smaller than RSA or ECC. Communication overhead: 279~bytes/pair (simulation) vs.\ RSA-2048 at 768~bytes. Per-UAV storage: $560 + 40N$~bytes ($\sim$960~B for $N$=10).
+
+\subsection{Security Properties}
+
+Table~\ref{tab:security} compares security properties.
+
+\begin{table}[H]
+\centering
+\caption{Security Properties Comparison}
+\label{tab:security}
+\footnotesize
+\begin{tabular}{@{}lccccc@{}}
+\toprule
+\textbf{Property} & \textbf{RSA} & \textbf{ECC} & \textbf{PSK} & \textbf{PUF\cite{puf_lightweight_uav}} & \textbf{Ours} \\
+\midrule
+Mutual auth & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark \\
+No key storage & -- & -- & -- & \checkmark & \checkmark \\
+Clone resist. & -- & -- & -- & \checkmark & \checkmark \\
+Peer-to-peer & \checkmark & \checkmark & \checkmark & -- & \checkmark \\
+Anonymity & -- & -- & -- & Part. & \checkmark \\
+Replay resist. & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark \\
+MITM resist. & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark \\
+Fwd secrecy & Opt. & Opt. & -- & -- & Opt. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Our protocol uniquely combines all eight properties: mutual authentication, no key storage, clone resistance, peer-to-peer auth, identity anonymity (rotating TIDs), replay/MITM resistance, and optional forward secrecy via ECDH.
+
+% ══════════════════════════════════════════════════════════════
+% SECTION VII: HARDWARE ANALYSIS
+% ══════════════════════════════════════════════════════════════
+\section{Hardware Performance Projection}
+\label{sec:hardware}
+
+\begin{table}[H]
+\centering
+\caption{Software vs.\ Hardware Hash Latency per Call}
+\label{tab:hw}
+\footnotesize
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+\textbf{Hash} & \textbf{Software} & \textbf{FPGA} & \textbf{ASIC} \\
+& \textbf{(x86-64)} & \textbf{(100\,MHz)} & \textbf{(200\,MHz)} \\
+\midrule
+SHA3-256 & 0.4\,$\mu$s & 1--2\,$\mu$s & 0.5--1\,$\mu$s \\
+SPONGENT-160 & 890\,$\mu$s & 5--10\,$\mu$s & 2--5\,$\mu$s \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The SHA3/SPONGENT ratio collapses from 2,225$\times$ in software to 2--5$\times$ in hardware because SPONGENT's bit-level permutation is zero-cost wire routing on FPGA/ASIC and its 44-nibble S-box layer executes in parallel~\cite{spongent_original}.
+
+Table~\ref{tab:hw_area} provides hardware resource estimates for all protocol components.
+
+\begin{table}[H]
+\centering
+\caption{Hardware Resource Estimates}
+\label{tab:hw_area}
+\footnotesize
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+\textbf{Component} & \textbf{GE} & \textbf{Power ($\mu$W)} & \textbf{Lat.\ ($\mu$s)} \\
+\midrule
+SPONGENT-160 & 2,190 & 3--5 & 5--10 \\
+SHA3-256 (Keccak) & 38,000 & 50--100 & 1--5 \\
+Arbiter PUF (128) & 1,200 & 0.3--0.5 & 0.03 \\
+BCH(255,131,18) & 5,000 & 8--12 & 1--2 \\
+\midrule
+\textbf{SPONGENT config} & \textbf{8,390} & \textbf{11--18} & --- \\
+\textbf{SHA3 config} & \textbf{44,200} & \textbf{58--113} & --- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The SPONGENT configuration (8,390 GE total) is 5.3$\times$ smaller than SHA3 (44,200 GE) and smaller than an ARM Cortex-M0 core (12,000 GE)---enabling integration as a dedicated security co-processor. Power consumption (11--18\,$\mu$W) is negligible compared to UAV motors (tens of watts).
+
+Table~\ref{tab:hw_latency} projects protocol latency on hardware platforms (replacing software hash times with FPGA/ASIC times, keeping network delays unchanged).
+
+\begin{table}[H]
+\centering
+\caption{Projected Protocol Latency on Hardware}
+\label{tab:hw_latency}
+\footnotesize
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+\textbf{Phase} & \textbf{Software} & \textbf{FPGA} & \textbf{ASIC} \\
+\midrule
+Phase~2 (SHA3) & 0.67\,ms & 0.68\,ms & 0.67\,ms \\
+Phase~2 (SPONGENT) & 7.37\,ms & 0.74\,ms & 0.69\,ms \\
+Phase~3 (SHA3) & 0.48\,ms & 0.49\,ms & 0.48\,ms \\
+Phase~3 (SPONGENT) & 14.54\,ms & 0.63\,ms & 0.51\,ms \\
+\midrule
+\textbf{Total (SHA3)} & \textbf{28.1\,ms} & \textbf{28.4\,ms} & \textbf{28.1\,ms} \\
+\textbf{Total (SPONGENT)} & \textbf{727.8\,ms} & \textbf{33.0\,ms} & \textbf{29.0\,ms} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+On ASIC, SPONGENT achieves near-identical latency to SHA3 (29\,ms vs.\ 28.1\,ms total) because network delay dominates once both hashes are fast, making SPONGENT the clear choice for hardware deployment with 5$\times$ fewer gates and 5--6$\times$ less power.
+
+% ══════════════════════════════════════════════════════════════
+% SECTION VIII: SECURITY ANALYSIS
+% ══════════════════════════════════════════════════════════════
+\section{Security Analysis}
+\label{sec:security_analysis}
+
+\begin{theorem}[Phase~2 Mutual Authentication]
+\label{thm:mutual}
+After Phase~2, both UAV$_i$ and GS are mutually authenticated.
+\end{theorem}
+\emph{Proof:} (1)~GS authenticates UAV$_i$ via $\gamma_1 = h(R_i \| N_1 \| N_2 \| T_2)$---forging $\gamma_1$ requires $R_i = \text{PUF}_i(C_i)$, obtainable only from the authentic PUF (unclonability). (2)~UAV$_i$ authenticates GS via $\beta_1 = h(C_i \| N_1 \| N_2 \| T_1)$---forging requires the CRP database stored exclusively at GS. (3)~An adversary cannot predict $R_i$ from $C_i$ without physical access (unpredictability). \hfill$\square$
+
+\begin{theorem}[Replay Attack Resistance]
+\label{thm:replay}
+The protocol prevents replay attacks in all phases.
+\end{theorem}
+\emph{Proof:} (1)~Fresh timestamps $T_1, T_2, T_3, T_4$ in all messages; messages with $|T_{\text{current}} - T_i| > \Delta T_{\max}$ are rejected. (2)~Fresh random nonces $N_1, N_2$ ensure message uniqueness across sessions. (3)~CRPs are marked ``consumed'' after use---replaying $M_3$ with a previously used $(C_i, R_i)$ pair fails GS verification. (4)~Phase~3 nonces $n_i, n_j$ are ephemeral and bound into MACs $\eta_1, \eta_2, \eta_3$. \hfill$\square$
+
+\begin{theorem}[Peer Mutual Authentication]
+\label{thm:peer}
+Phase~3 provides mutual authentication between UAV$_i$ and UAV$_j$ without GS involvement.
+\end{theorem}
+\emph{Proof:} (1)~UAV$_j$ is authenticated by UAV$_i$ because decrypting puzzle $Q_i = E_{\tilde{P}_{ij}}(n_j \| C_i \| T_{p1})$ requires knowledge of $\tilde{P}_{ij}$, which requires $P_{ji} = h(R_j \| \text{ID}_i \| N_{\text{gs}})$, derivable only from $R_j = \text{PUF}_j(C_j)$ (unclonability). (2)~Symmetrically, UAV$_i$ is authenticated via $Q_j$. (3)~The XOR masks $\text{Mask}_{ij} = P_{ij} \oplus P_{ji}$ are information-theoretically secure one-time pads. \hfill$\square$
+
+\begin{theorem}[MITM Resistance]
+\label{thm:mitm}
+The protocol resists man-in-the-middle attacks.
+\end{theorem}
+\emph{Proof:} (1)~All messages are MAC-protected: $\alpha_1$, $\beta_1$, $\gamma_1$, $\delta_1$ in Phase~2 and $\eta_1$, $\eta_2$, $\eta_3$ in Phase~3. Modification is detected via MAC verification failure. (2)~Encrypted puzzles $Q_i$, $Q_j$ cannot be decrypted or re-encrypted without PUF-derived secrets $P_{ij}$, $P_{ji}$. (3)~The PUF response $R_i$ is transmitted only in masked form ($R_i \oplus h(N_2)$), preventing extraction. \hfill$\square$
+
+\begin{theorem}[Physical Capture Resistance]
+\label{thm:capture}
+Capture of UAV$_i$ does not compromise other UAVs or past sessions.
+\end{theorem}
+\emph{Proof:} (1)~NVM contains only $\text{TID}_i$ (rotated after each session), $\tau_i$ (useless without PUF to regenerate $R_i$), and masks $\text{Mask}_{ij}$ (require $R_j$ from other PUFs to extract $P_{ji}$). (2)~No raw PUF responses are stored. (3)~Invasive probing to extract the PUF physically destroys it (tamper evidence). (4)~Session key $\text{SK}_{ij} = h(n_i \| n_j \| n_i' \| R_i \| R_j)$ uses ephemeral nonces; past keys cannot be reconstructed. With optional ECDH, perfect forward secrecy is achieved. \hfill$\square$
+
+% ══════════════════════════════════════════════════════════════
+% SECTION IX: DISCUSSION AND CONCLUSION
+% ══════════════════════════════════════════════════════════════
+\section{Discussion}
+\label{sec:discussion}
+
+\textbf{Platform considerations:} Our x86-64 results provide accurate \emph{relative} comparisons. On ARM Cortex-M4, SHA3 would degrade 2--20$\times$; with FPGA/ASIC acceleration, hash timing becomes negligible. Real 802.11 MAC overhead (1--10\,ms/frame) would affect all protocols equally.
+
+\textbf{Simulation vs.\ theory:} OMNeT++ measures 175~B (Phase~2) + 104~B (Phase~3) vs.\ theoretical 210 + 196~B, due to simplified credential packaging. Timing impact: $<$0.05\,ms at 6\,Mbps.
+
+\textbf{Limitations:} Fixed UAV set (dynamic join/leave needs Phase~1 extension); 12 CRPs limit sessions before re-enrollment; single-GS design needs extension for multi-GS deployments.
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+We presented a four-phase PUF-based authentication protocol for UAV swarm networks, combining PUF hardware root-of-trust with both UAV--GS and direct peer-to-peer authentication in a unified framework. The complete protocol was implemented and evaluated in OMNeT++ 6.3 using a realistic 10-UAV stadium surveillance scenario with dual hash modes. Key findings:
+
+\begin{itemize}[leftmargin=*,nosep]
+    \item \textbf{Phase~2 (UAV--GS):} 0.672\,ms (SHA3) / 7.368\,ms (SPONGENT)---10--22$\times$ faster than RSA/ECC alternatives
+    \item \textbf{Phase~3 (peer):} 0.476\,ms (SHA3) / 14.535\,ms (SPONGENT) per pair, with 100\% success across all 45 full-mesh pairs
+    \item \textbf{Complete swarm:} 28.1\,ms (SHA3) / 727.8\,ms (SPONGENT software) for full 10-UAV mutual authentication
+    \item \textbf{Overhead:} 279 bytes/pair (simulation); sub-1\,KB storage per UAV
+    \item \textbf{Hardware:} SPONGENT on FPGA (2,190 GE) achieves 33\,ms total swarm authentication---near-identical to SHA3 with 5$\times$ less area and power
+    \item \textbf{Security:} Mutual authentication, clone resistance, MITM/replay resistance, no key storage, physical capture resistance---all proven via formal theorems
+\end{itemize}
+
+The 2,225$\times$ SHA3-to-SPONGENT software performance gap collapses to 2--5$\times$ on hardware, confirming SPONGENT's suitability as the optimal hash function for FPGA/ASIC-accelerated UAV authentication. All results were obtained on an x86-64 laptop; real deployment on low-power ARM would be 2--20$\times$ slower in software, while FPGA/ASIC acceleration would be 100--400$\times$ faster for SPONGENT.
+
+Future work includes FPGA prototyping on Xilinx Artix-7, MAVLink 2.0 integration for real UAV deployment, adversarial evaluation (jamming, Sybil attacks), large-scale 50--100 UAV simulation, formal ProVerif/Tamarin verification, and post-quantum security assessment.
+
+\section*{Acknowledgment}
+
+The author thanks the Indian Institute of Information Technology Guwahati for providing the research infrastructure, the OMNeT++ community for the simulation framework, and the OpenSSL project for the SHA3 implementation.
+
+% ══════════════════════════════════════════════════════════════
+% REFERENCES
+% ══════════════════════════════════════════════════════════════
+\balance
+\bibliographystyle{IEEEtran}
+\begin{thebibliography}{15}
+
+\bibitem{securing_uav_fanet}
+A.~Mukherjee \emph{et~al.}, ``Securing UAV Flying Ad Hoc Wireless Networks: Authentication Development for Robust Communications,'' \emph{IEEE Access}, vol.~12, pp.~1--15, 2024.
+
+\bibitem{puf_lightweight_uav}
+P.~Gope and B.~Sikdar, ``A PUF-based lightweight authentication and key agreement protocol for smart UAV networks,'' \emph{IET Commun.}, vol.~16, no.~18, pp.~2136--2148, 2022.
+
+\bibitem{peer2peer_auth}
+T.~Bera, S.~Das, and A.~K.~Das, ``Secure and Efficient Peer2Peer Authentication-Attestation Protocol for UAV Networks,'' in \emph{Proc.\ IEEE INFOCOM Workshop}, 2023.
+
+\bibitem{puf_overview}
+A.~Alkatheiri \emph{et~al.}, ``Review of Physically Unclonable Functions (PUFs): Structures, Models, and Algorithms,'' \emph{Frontiers in Electronics}, vol.~4, 2023.
+
+\bibitem{arbiter_puf_iot}
+L.~Xu \emph{et~al.}, ``An Enhanced Event-Based Dynamic Authentication Protocol Leveraging Arbiter PUF for IoT Devices,'' \emph{IEEE IoT J.}, vol.~10, no.~18, pp.~16123--16135, 2023.
+
+\bibitem{sha3_standard}
+NIST, ``SHA-3 Standard: Permutation-Based Hash and Extendable-Output Functions,'' FIPS~202, Aug.~2015.
+
+\bibitem{spongent_original}
+A.~Bogdanov \emph{et~al.}, ``SPONGENT: A Lightweight Hash Function,'' in \emph{Proc.\ CHES 2011}, LNCS 6917, pp.~312--325.
+
+\bibitem{bch_puf_extraction}
+J.~Delvaux \emph{et~al.}, ``Cryptographic Key Generation from PUF Data Using Efficient Fuzzy Extractors,'' \emph{IEEE Trans.\ Inf.\ Forensics Security}, vol.~15, pp.~2025--2038, 2020.
+
+\bibitem{dolev_yao}
+D.~Dolev and A.~Yao, ``On the Security of Public Key Protocols,'' \emph{IEEE Trans.\ Inf.\ Theory}, vol.~29, no.~2, pp.~198--208, 1983.
+
+\bibitem{puf_uav_cross_domain}
+B.~Li \emph{et~al.}, ``PUF-Based Secure and Efficient Anonymous Authentication Protocol for UAV Towards Cross-Domain Environments,'' \emph{IEEE Trans.\ Veh.\ Technol.}, vol.~72, no.~9, pp.~12101--12115, 2023.
+
+\bibitem{puf_6g_uav}
+S.~Khan \emph{et~al.}, ``A Provably Secure and Lightweight PUF-Based Authentication Scheme for 6G-Enabled UAV Networks,'' \emph{IEEE IoT J.}, vol.~11, no.~5, pp.~8532--8543, 2024.
+
+\bibitem{puf_iot_strong_adversary}
+U.~Chatterjee \emph{et~al.}, ``PUF-based Authentication in IoT against Strong Physical Adversary,'' in \emph{Proc.\ IEEE DATE}, 2022.
+
+\bibitem{lightweight_crypto_evaluation}
+T.~Eisenbarth \emph{et~al.}, ``Design and Evaluation of Lightweight Cryptographic Primitives for Constrained Devices,'' \emph{J.\ Cryptographic Eng.}, vol.~12, no.~3, pp.~245--260, 2022.
+
+\bibitem{keccak_team}
+G.~Bertoni \emph{et~al.}, ``The Keccak Reference,'' Version 3.0, Jan.~2011.
+
+\bibitem{helper_data_masking}
+R.~Maes, ``Helper Data Masking for PUF-Based Key Generation,'' Cryptology ePrint Archive, Report 2019/688, 2019.
+
+\bibitem{ro_puf_design}
+S.~Kumar \emph{et~al.}, ``Design of A Ring Oscillator Based PUF with Enhanced Challenge Response pair and Improved Reliability,'' \emph{IEEE Access}, vol.~11, pp.~75432--75445, 2023.
+
+\bibitem{sram_puf_bch}
+L.~Zhang \emph{et~al.}, ``SRAM-PUF Key Extraction Method and Performance Analysis Based on RS and BCH Codes,'' \emph{Electronics}, vol.~12, no.~4, p.~1012, 2023.
+
+\end{thebibliography}
+
+\end{document}

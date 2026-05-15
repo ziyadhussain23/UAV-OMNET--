@@ -1,0 +1,19 @@
+# Build artifacts
+src/*.o
+src/*.so
+src/uavauthsim
+src/Makefile
+out/
+
+# OMNeT++ results
+simulations/results/*.vec
+simulations/results/*.vci
+simulations/results/*.sca
+simulations/results/*.elog
+
+# Temporary and system files
+*.swp
+*.swo
+*.tmp
+*.core
+core

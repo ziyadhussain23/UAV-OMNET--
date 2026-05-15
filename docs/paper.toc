@@ -1,0 +1,69 @@
+\contentsline {section}{\numberline {1}Introduction}{4}{section.1}%
+\contentsline {subsection}{\numberline {1.1}Background and Motivation}{4}{subsection.1.1}%
+\contentsline {subsection}{\numberline {1.2}Limitations of Traditional Authentication}{4}{subsection.1.2}%
+\contentsline {subsection}{\numberline {1.3}Physical Unclonable Functions as a Solution}{4}{subsection.1.3}%
+\contentsline {subsection}{\numberline {1.4}Contributions of This Paper}{4}{subsection.1.4}%
+\contentsline {section}{\numberline {2}Background and Existing Technologies}{5}{section.2}%
+\contentsline {subsection}{\numberline {2.1}UAV Communication Architecture}{5}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}Physical Unclonable Functions (PUFs)}{5}{subsection.2.2}%
+\contentsline {subsubsection}{\numberline {2.2.1}PUF Fundamentals}{5}{subsubsection.2.2.1}%
+\contentsline {subsubsection}{\numberline {2.2.2}Types of PUFs}{5}{subsubsection.2.2.2}%
+\contentsline {subsubsection}{\numberline {2.2.3}PUF Noise and Reliability}{5}{subsubsection.2.2.3}%
+\contentsline {subsection}{\numberline {2.3}Lightweight Cryptographic Hash Functions}{6}{subsection.2.3}%
+\contentsline {subsubsection}{\numberline {2.3.1}SHA3-256 (Keccak)}{6}{subsubsection.2.3.1}%
+\contentsline {subsubsection}{\numberline {2.3.2}SPONGENT-160}{6}{subsubsection.2.3.2}%
+\contentsline {subsection}{\numberline {2.4}BCH Error Correction for PUFs}{6}{subsection.2.4}%
+\contentsline {subsubsection}{\numberline {2.4.1}Fuzzy Extractors}{6}{subsubsection.2.4.1}%
+\contentsline {subsubsection}{\numberline {2.4.2}BCH Code Parameters}{7}{subsubsection.2.4.2}%
+\contentsline {section}{\numberline {3}Related Work}{7}{section.3}%
+\contentsline {subsection}{\numberline {3.1}PUF-Based Authentication for IoT and UAVs}{7}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}Peer-to-Peer UAV Authentication}{8}{subsection.3.2}%
+\contentsline {subsection}{\numberline {3.3}Lightweight Hash Functions for Constrained Devices}{8}{subsection.3.3}%
+\contentsline {subsection}{\numberline {3.4}Comparison of Existing Approaches}{8}{subsection.3.4}%
+\contentsline {section}{\numberline {4}Proposed Protocol Design}{8}{section.4}%
+\contentsline {subsection}{\numberline {4.1}Threat Model and Design Goals}{8}{subsection.4.1}%
+\contentsline {subsubsection}{\numberline {4.1.1}Threat Model}{8}{subsubsection.4.1.1}%
+\contentsline {subsubsection}{\numberline {4.1.2}Design Goals}{9}{subsubsection.4.1.2}%
+\contentsline {subsection}{\numberline {4.2}System Model and Notation}{9}{subsection.4.2}%
+\contentsline {subsection}{\numberline {4.3}Phase~1: Secure Enrollment and Registration}{9}{subsection.4.3}%
+\contentsline {subsection}{\numberline {4.4}Phase~2: UAV-Ground Station Mutual Authentication}{10}{subsection.4.4}%
+\contentsline {subsection}{\numberline {4.5}Phase~3: UAV-to-UAV Peer Authentication}{11}{subsection.4.5}%
+\contentsline {subsection}{\numberline {4.6}Phase~4: Session Key Establishment}{12}{subsection.4.6}%
+\contentsline {section}{\numberline {5}OMNeT++ Implementation}{13}{section.5}%
+\contentsline {subsection}{\numberline {5.1}Simulation Environment and Parameters}{13}{subsection.5.1}%
+\contentsline {subsection}{\numberline {5.2}Module Architecture}{13}{subsection.5.2}%
+\contentsline {subsection}{\numberline {5.3}Cryptographic Component Implementation}{14}{subsection.5.3}%
+\contentsline {subsection}{\numberline {5.4}Full-Mesh Phase~3 Implementation}{14}{subsection.5.4}%
+\contentsline {subsection}{\numberline {5.5}Hash Warmup Mechanism}{14}{subsection.5.5}%
+\contentsline {section}{\numberline {6}Simulation Results}{14}{section.6}%
+\contentsline {subsection}{\numberline {6.1}Phase~2: UAV-Ground Station Authentication Results}{14}{subsection.6.1}%
+\contentsline {subsection}{\numberline {6.2}Phase~2 Per-Message Timing Breakdown}{15}{subsection.6.2}%
+\contentsline {subsection}{\numberline {6.3}Phase~3: Peer-to-Peer Authentication Results}{15}{subsection.6.3}%
+\contentsline {subsection}{\numberline {6.4}Phase~3 Per-Step Timing Breakdown}{16}{subsection.6.4}%
+\contentsline {subsection}{\numberline {6.5}Combined Protocol Timing Summary}{16}{subsection.6.5}%
+\contentsline {subsection}{\numberline {6.6}Compute vs.\ Network Breakdown}{16}{subsection.6.6}%
+\contentsline {section}{\numberline {7}Comparison with Existing Authentication Methods}{17}{section.7}%
+\contentsline {subsection}{\numberline {7.1}Communication Overhead Comparison}{17}{subsection.7.1}%
+\contentsline {subsection}{\numberline {7.2}Authentication Latency Comparison}{18}{subsection.7.2}%
+\contentsline {subsection}{\numberline {7.3}Computational Cost Analysis}{19}{subsection.7.3}%
+\contentsline {subsection}{\numberline {7.4}Storage Requirements Comparison}{19}{subsection.7.4}%
+\contentsline {subsection}{\numberline {7.5}Security Properties Comparison}{20}{subsection.7.5}%
+\contentsline {section}{\numberline {8}Hardware Implementation Analysis}{20}{section.8}%
+\contentsline {subsection}{\numberline {8.1}Software vs.\ Hardware Performance Gap}{20}{subsection.8.1}%
+\contentsline {subsection}{\numberline {8.2}Hardware Area and Power Analysis}{21}{subsection.8.2}%
+\contentsline {subsection}{\numberline {8.3}Projected Hardware Protocol Latency}{21}{subsection.8.3}%
+\contentsline {subsection}{\numberline {8.4}Real-World Deployment Considerations}{22}{subsection.8.4}%
+\contentsline {section}{\numberline {9}Security Analysis}{22}{section.9}%
+\contentsline {subsection}{\numberline {9.1}Assumptions}{22}{subsection.9.1}%
+\contentsline {subsection}{\numberline {9.2}Phase~2: Mutual Authentication}{22}{subsection.9.2}%
+\contentsline {subsection}{\numberline {9.3}Replay Attack Resistance}{22}{subsection.9.3}%
+\contentsline {subsection}{\numberline {9.4}Phase~3: Peer Mutual Authentication}{23}{subsection.9.4}%
+\contentsline {subsection}{\numberline {9.5}Man-in-the-Middle Resistance}{23}{subsection.9.5}%
+\contentsline {subsection}{\numberline {9.6}Key Secrecy and Forward Secrecy}{23}{subsection.9.6}%
+\contentsline {subsection}{\numberline {9.7}Physical Capture Resistance}{23}{subsection.9.7}%
+\contentsline {subsection}{\numberline {9.8}Summary of Security Properties}{23}{subsection.9.8}%
+\contentsline {section}{\numberline {10}Discussion}{24}{section.10}%
+\contentsline {subsection}{\numberline {10.1}Simulation vs.\ Real Deployment}{24}{subsection.10.1}%
+\contentsline {subsection}{\numberline {10.2}Simulation vs.\ Theory Overhead and Scalability}{24}{subsection.10.2}%
+\contentsline {subsection}{\numberline {10.3}Limitations}{25}{subsection.10.3}%
+\contentsline {section}{\numberline {11}Conclusion}{25}{section.11}%
