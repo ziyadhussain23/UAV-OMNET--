@@ -1,0 +1,23 @@
+# User-supplied makefile fragment, auto-included by the generated Makefile.
+# Survives `opp_makemake -f`, unlike edits to the Makefile itself (which is
+# regenerated and git-ignored).
+
+# This fragment is included at Makefile line ~76, BEFORE `all:` is defined, so
+# the first target declared here would otherwise become make's default goal and
+# every plain `make` would run the test suite. Pin the default explicitly.
+.DEFAULT_GOAL := all
+
+# The OMNeT++ toolchain already sets -std=c++17; state it explicitly so the
+# standalone unit-test build and the simulation build cannot drift apart.
+CXXFLAGS += -std=c++17
+
+# Warnings that would have caught several defects in the previous implementation
+# (unused results from verification functions, silent sign/size conversions).
+CXXFLAGS += -Wall -Wextra -Wno-unused-parameter
+
+# `make check` builds and runs the standalone unit tests (KATs, BCH, PUF,
+# offline protocol vectors). They do not link the simulation kernel.
+.PHONY: check
+check:
+	@$(MAKE) -s MODE=$(MODE) all
+	@bash ../tests/run_tests.sh

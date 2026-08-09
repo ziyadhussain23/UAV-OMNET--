@@ -1,21 +1,18 @@
-# Instructions for AI: Protocol Theory Redesign
+Act as an expert cryptographer and academic author preparing a high-tier journal manuscript. I have an updated cryptographic theory for a PUF-based four-phase UAV swarm authentication protocol. 
 
-**Context:** Refer to the existing `REPORT.md` file for the complete audit and security analysis of the current protocol. 
+Your task is to write a flawless, highly polished LaTeX document containing this theory.
 
-**Task:** Completely redesign and rewrite the theoretical foundation of the PUF-based four-phase authentication protocol to ensure mathematical and cryptographic perfection.
+**Critical Content Constraints:**
+1. **Original Tone:** Present this protocol as a novel, original contribution. You must absolutely completely remove any meta-commentary about this being a "corrected," "revised," or "hardened" version. 
+2. **Remove Audit References:** Do not include any tables, sentences, or sections that reference "previous defects," "the audit," or comparisons to a "previous specification."
+3. **Confident Academic Voice:** Write with the confident, authoritative tone of a standard IEEE/ACM journal paper. Introduce the stable PUF-derived key, the authenticated ephemeral DH, and the per-pair AEAD credentials simply as the core design features of your proposed protocol.
 
-**Execution Steps:**
-1. **Analyze `REPORT.md`:** Review "Part A — Protocol security analysis" to understand the specific theoretical flaws (unkeyed hashes, plaintext credentials, PUF oracles, incorrect assumptions, and lack of forward secrecy).
-2. **Setup:** Create a new directory named `revised_theory` and generate a new LaTeX file inside it named `uav_protocol_theory.tex`.
-3. **Redesign Theory:** Write the fully corrected mathematical specification for all four phases. You must resolve every flaw identified in the report (e.g., implement keyed GS authentication, secure masking, per-pair PUF-rooted credential distribution via AEAD, domain separation, and mandatory ephemeral key exchange for PFS).
-4. **Theorems and Proofs:** Define new, mathematically sound theorems for:
-    * Mutual Authentication (GS-UAV and UAV-UAV)
-    * Replay and MITM Resistance
-    * Physical-Capture Resistance
-    * Perfect Forward Secrecy
-5. **Formal Proofs:** Provide rigorous, logically sound proofs for every theorem based strictly on the newly hardened architecture. Correct the helper-data mathematical assumption.
+**Critical Formatting Constraints:**
+1. **Spacious Mathematical Typesetting:** The document must look beautiful and easy to read. Avoid congested formulas. Use the `align` environment for multi-step equations and ensure there is generous vertical spacing (`\vspace{...}` or `\\[1ex]`) between distinct mathematical concepts.
+2. **Elegant Algorithms:** Use the `algorithm` and `algorithmic` packages to present the four phases cleanly. Ensure steps are well-spaced and easy to follow.
+3. **Clean Structure:** Use standard document class (`\documentclass[11pt,a4paper]{article}`) with the `geometry` package for reasonable margins. Include packages like `amsmath`, `amssymb`, `booktabs`, and `xcolor`.
 
-**Output Constraints:** 
-* Output only the fully compliant, compilable LaTeX code within a single code block. 
-* Do not generate or modify any implementation code (C++/Python) or simulation files. 
-* Focus purely on a flawless cryptographic theory specification.
+**Source Material:**
+Base the cryptographic mathematics, algorithms, and security theorems strictly on the recently generated theoretical model (which included the keyed MACs, exact min-entropy helper-data bounds, and Tamarin symbolic model lemmas).
+
+Output the entire, ready-to-compile LaTeX content within a single code block. Ensure it compiles without errors and results in a visually stunning, spaced-out academic document.

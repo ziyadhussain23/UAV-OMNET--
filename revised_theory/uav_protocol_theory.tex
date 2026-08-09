@@ -1,0 +1,743 @@
+%=======================================================================
+%  Hardened Cryptographic Theory for the PUF-Based Four-Phase
+%  UAV-Swarm Authentication Protocol
+%
+%  Self-contained corrected specification, replacing the theory audited
+%  in REPORT.md (Part A).  Theory only -- no implementation.
+%
+%  Compile:  pdflatex uav_protocol_theory.tex   (run twice for refs)
+%=======================================================================
+\documentclass[11pt]{article}
+
+% --- Math & symbols ----------------------------------------------------
+\usepackage{amsmath,amssymb,amsfonts,amsthm}
+\usepackage{mathtools}
+\usepackage{bm}
+
+% --- Layout / tables / floats ------------------------------------------
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{enumitem}
+\usepackage{xcolor}
+
+% --- Algorithms --------------------------------------------------------
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+% --- Links (load before cleveref) --------------------------------------
+\usepackage[hidelinks]{hyperref}
+\usepackage[capitalize]{cleveref}
+
+% --- Theorem environments (declared after cleveref for amsthm) ---------
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+\newtheorem{assumption}{Assumption}
+\newtheorem{remark}{Remark}
+
+% --- Notation macros ---------------------------------------------------
+\newcommand{\GS}{\mathrm{GS}}
+\newcommand{\UAV}{\mathrm{UAV}}
+\newcommand{\PUF}{\mathsf{PUF}}
+\newcommand{\TID}{\mathrm{TID}}
+\newcommand{\Cred}{\mathrm{Cred}}
+\newcommand{\mk}{\mathrm{mk}}
+\newcommand{\SK}{\mathrm{SK}}
+\newcommand{\MAC}{\mathsf{MAC}}
+\newcommand{\aead}{\mathsf{AE}}
+\newcommand{\Enc}{\mathsf{Enc}}
+\newcommand{\Dec}{\mathsf{Dec}}
+\newcommand{\KDF}{\mathsf{KDF}}
+\newcommand{\Ext}{\mathsf{Ext}}
+\newcommand{\Code}{\mathsf{C}}
+\newcommand{\Gen}{\mathsf{Gen}}
+\newcommand{\Rep}{\mathsf{Rep}}
+\newcommand{\FE}{\mathsf{FE}}
+\newcommand{\adv}{\mathcal{A}}
+\newcommand{\secpar}{\lambda}
+\newcommand{\bits}{\{0,1\}}
+\newcommand{\getsr}{\xleftarrow{\$}}
+\newcommand{\negl}{\mathsf{negl}}
+\newcommand{\Adv}{\mathsf{Adv}}
+\newcommand{\entropy}{\widetilde{H}_\infty}
+\newcommand{\lbl}[1]{\text{``}\texttt{#1}\text{''}}
+\newcommand{\catt}{\,\|\,}          % concatenation
+\newcommand{\xor}{\oplus}
+\newcommand{\transcript}{\mathcal{T}}
+\newcommand{\eph}{\mathrm{eph}}
+
+\title{\textbf{A Hardened Cryptographic Theory for PUF-Based\\
+Four-Phase UAV-Swarm Authentication}\\[4pt]
+\large Corrected Specification, Formal Assumptions, and Security Proofs}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+We present a corrected cryptographic foundation for a four-phase Physical
+Unclonable Function (PUF)-based authentication protocol for Unmanned Aerial
+Vehicle (UAV) swarms. The redesign eliminates every theoretical flaw of the
+previous specification: unkeyed ``authenticators'', a chosen-challenge PUF
+read-out oracle, a plaintext swarm-wide credential, the absence of forward
+secrecy, an unsound helper-data independence assumption, and a saturating
+single-use challenge budget. The corrected trust model derives a
+\emph{stable} per-device master key from the PUF through a fuzzy extractor
+with a mathematically correct min-entropy accounting; the device stores no
+secret. All authenticators become keyed message-authentication codes; the
+raw PUF response never leaves the device; peer authentication is rooted in
+per-pair credentials delivered under authenticated encryption; and an
+authenticated ephemeral Diffie--Hellman exchange provides mandatory forward
+secrecy. We give six theorems---mutual authentication (both directions),
+peer mutual authentication, replay/MITM resistance, physical-capture
+resistance, session-key secrecy, and perfect forward secrecy---each with a
+game-based reduction to standard assumptions, and we accompany them with a
+symbolic (Tamarin/applied-$\pi$) model and its verification lemmas.
+\end{abstract}
+
+\tableofcontents
+
+%=======================================================================
+\section{Introduction and Scope}
+%=======================================================================
+This document specifies \emph{only} the cryptographic theory of the
+protocol. It supersedes the theory analysed in the accompanying audit
+(\texttt{REPORT.md}, Part~A). No implementation, simulation, or empirical
+claim is made here; the primitives are treated abstractly and instantiated
+with standard concrete choices only where it clarifies the design.
+
+The audit identified seven theory-level defects, summarised in
+\cref{tab:flaws}. The rest of this paper is organised so that each defect is
+mapped to a concrete design decision (\cref{sec:rationale}) and then
+provably neutralised by a phase specification (\cref{sec:phases}) and a
+theorem (\cref{sec:proofs,sec:symbolic}).
+
+\begin{table}[t]
+\centering
+\caption{Theory defects of the previous specification (audit Part~A) and
+where each is resolved.}
+\label{tab:flaws}
+\small
+\begin{tabularx}{\linewidth}{@{}l l X l@{}}
+\toprule
+\textbf{Ref} & \textbf{Defect} & \textbf{Root cause} & \textbf{Resolved in}\\
+\midrule
+A.1 & GS$\to$UAV auth absent & authenticators are unkeyed hashes of public data & \cref{sec:p2}, Thm.~\ref{thm:p2}\\
+A.2 & PUF read-out oracle & response masked by $h(N_2)$ with $N_2$ public & \cref{sec:p2}, Cor.~\ref{cor:nooracle}\\
+A.3 & Swarm-wide plaintext $\Cred$ & one shared secret, no confidentiality/authenticity & \cref{sec:p3}, Thm.~\ref{thm:p3}\\
+A.4 & No forward secrecy & keys are deterministic in long-term secrets & \cref{sec:p4}, Thm.~\ref{thm:pfs}\\
+A.5 & Unsound helper-data claim & ``independence'' instead of $\entropy$ bound & \cref{sec:prelim}, Lem.~\ref{lem:fe}\\
+A.6 & CRP exhaustion / DoS & single-use challenges, unauthenticated request & \cref{sec:p1,sec:p2}\\
+A.7 & Phase-3 confusion & no domain separation / freshness & \cref{sec:p3}, Thm.~\ref{thm:replay}\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+%=======================================================================
+\section{Preliminaries and Cryptographic Primitives}
+\label{sec:prelim}
+%=======================================================================
+Let $\secpar$ be the security parameter. A function is \emph{negligible},
+written $\negl(\secpar)$, if it vanishes faster than any inverse polynomial.
+$x\getsr S$ denotes uniform sampling; $\catt$ is concatenation; $\xor$ is
+bitwise XOR. All concatenations are unambiguously parseable (length-prefixed).
+
+\subsection{Hash function and dual-mode instantiation}
+$h:\bits^\ast\to\bits^{160}$ is a cryptographic hash, instantiated in
+either of two interoperable modes---\textbf{SHA3-256 truncated to
+$160$~bits} or \textbf{SPONGENT-160}---exactly as in the reference design,
+so the dual-mode performance characterisation is preserved. In the
+computational proofs $h$ is modelled as a random oracle; where a keyed
+primitive is required we do \emph{not} use $h$ bare (this is the central
+correction of A.1) but the dedicated keyed constructions below.
+
+\subsection{Keyed primitives}
+\begin{definition}[MAC, EUF-CMA]
+$\MAC:\bits^\secpar\times\bits^\ast\to\bits^\secpar$ is
+\emph{existentially unforgeable under chosen-message attack} if for every
+PPT $\adv$ the advantage
+\[
+\Adv^{\mathrm{euf}}_{\MAC}(\adv)=\Pr\!\left[\adv\text{ outputs a fresh valid }
+(m,\MAC_K(m))\right]\le\negl(\secpar),
+\]
+for $K\getsr\bits^\secpar$.
+We instantiate $\MAC$ as $\mathrm{HMAC}$-$h$ (equivalently a sponge/keyed
+duplex MAC over the chosen $h$).
+\end{definition}
+
+\begin{definition}[Nonce-based AEAD]
+$\aead=(\Enc,\Dec)$ with
+$\Enc_K(\eta;\mathit{ad};m)\to c$ and $\Dec_K(\eta;\mathit{ad};c)\to
+m/\bot$ is \emph{IND-CCA} secure (ciphertext indistinguishability) and
+provides \emph{INT-CTXT} (ciphertext integrity), with advantages
+$\Adv^{\mathrm{ind}}_{\aead},\Adv^{\mathrm{int}}_{\aead}\le\negl(\secpar)$ for
+distinct nonces $\eta$. We instantiate $\aead$ with a lightweight nonce-based
+AEAD (Ascon-AEAD class), aligned with the protocol's lightweight target.
+\end{definition}
+
+\begin{definition}[KDF]
+$\KDF$ is HKDF (Extract-then-Expand). Every derivation carries a unique
+\emph{domain-separation label}; $\KDF(k;\ell)$ denotes expansion of key
+material $k$ under a label
+\[
+\ell\in\{\lbl{p2-auth},\ \lbl{p2-sess},\ \lbl{pair-cred},\
+  \lbl{peer-auth},\ \lbl{peer-sess},\ \lbl{pfs}\}.
+\]
+We model
+$\KDF(\cdot;\ell)$ as an independent PRF for each $\ell$; distinct labels
+give independent keys (domain separation), correcting A.7.
+\end{definition}
+
+\subsection{Ephemeral key exchange}
+$\mathbb{G}$ is the group underlying \textbf{X25519} with generator $g$.
+Security of forward secrecy is reduced to the \emph{gap computational
+Diffie--Hellman} (gap-CDH) assumption, equivalently the PRF-ODH assumption
+for $\KDF$ over $\mathbb{G}$.
+
+\subsection{PUF and fuzzy extractor (corrected)}
+Each device $i$ embeds a strong PUF
+$\PUF_i:\bits^{c}\to\bits^{n}$. Repeated evaluations of the same challenge
+differ in at most $t$ bits with overwhelming probability (bounded bit-error
+rate). We make the standard, \emph{correctly stated} assumptions.
+
+\begin{assumption}[PUF unpredictability]\label{ass:puf}
+For a challenge $C$ not previously queried, and given any polynomial set of
+challenge--response pairs of $\PUF_i$, the response $\PUF_i(C)$ is
+computationally indistinguishable from uniform to a PPT adversary that does
+not physically possess device~$i$.
+\end{assumption}
+
+\begin{assumption}[Tamper-evidence]\label{ass:tamper}
+Invasive probing of device $i$ destroys $\PUF_i$; its challenge--response
+behaviour cannot be extracted from captured silicon or transferred to
+another device.
+\end{assumption}
+
+We use a \emph{fuzzy extractor} $\FE=(\Gen,\Rep)$ built from a code-offset
+secure sketch over a binary linear code $\Code$ with parameters $(n,k,t)$
+(instantiated as the \emph{correctly parameterised} $\mathrm{BCH}(255,131,18)$,
+so $n-k=124$ parity bits and error-correction radius $t=18$), composed with
+a strong extractor realised by $\KDF$:
+\begin{align}
+\Gen(R):\quad & r\getsr\bits^{k},\; c=\Code.\mathsf{Encode}(r),\;
+  s = R\xor c,\; \text{seed}\getsr\bits^\secpar,\notag\\
+  & \mk=\KDF(\Ext_{\text{seed}}(R);\lbl{root}),\;
+  P=(s,\text{seed}),\; \text{return }(P,\mk);\label{eq:gen}\\
+\Rep(R',P):\quad & c' = R'\xor s,\; \hat r=\Code.\mathsf{Decode}(c'),\;
+  \hat c=\Code.\mathsf{Encode}(\hat r),\; \hat R = \hat c \xor s,\notag\\
+  & \text{return } \mk=\KDF(\Ext_{\text{seed}}(\hat R);\lbl{root}).
+  \label{eq:rep}
+\end{align}
+
+\begin{lemma}[Correctness]\label{lem:fecorrect}
+If the Hamming distance $d_H(R,R')\le t$, then $\Rep(R',P)$ recovers
+$\hat R = R$ and hence the identical $\mk$.
+\end{lemma}
+\begin{proof}
+$c' = R'\xor s = c \xor (R\xor R')$ differs from the codeword $c$ in
+$d_H(R,R')\le t$ positions, so bounded-distance decoding returns
+$\hat r=r$, whence $\hat c=c$ and $\hat R=\hat c\xor s = R$. Thus both sides
+apply $\Ext$ and $\KDF$ to the identical $R$.\qed
+\end{proof}
+
+\begin{lemma}[Helper-data privacy --- \emph{corrected form of the previous
+Assumption~4}]\label{lem:fe}
+Let $\entropy(R)=m$ be the conditional min-entropy of the enrolment
+response. The code-offset sketch $s$ leaks \emph{at most} $n-k$ bits:
+\begin{equation}
+\entropy\!\left(R \mid P\right)\;\ge\; m-(n-k).
+\label{eq:leak}
+\end{equation}
+Consequently, if $\Ext$ is a $(m-(n-k),\varepsilon)$-strong extractor with
+$\varepsilon=2^{-\Omega(\secpar)}$ and output length
+$\ell\le m-(n-k)-2\log(1/\varepsilon)$, then $\mk$ is within statistical
+distance $\varepsilon$ of uniform given $P$.
+\end{lemma}
+\begin{proof}
+$s=R\xor c$ is a deterministic function of $R$ (given the internal $r$) and
+takes values in a coset of $\Code$; revealing the coset of an $[n,k]$ code
+fixes at most $n-k$ syndrome bits, so by the chain rule for average
+min-entropy $\entropy(R\mid s)\ge \entropy(R)-(n-k)$; $\text{seed}$ is
+independent of $R$. Applying the strong-extractor property to the residual
+source yields the stated distance.\qed
+\end{proof}
+
+\begin{remark}[Design constraint --- why the old numbers could not hold]
+\Cref{eq:leak} is a \emph{bounded} loss, not the independence claimed
+previously. A single $128$/$255$-bit arbiter response with $n-k=124$ cannot
+supply $\ell=2\secpar$ residual bits. The protocol therefore enrols
+$L$ independent response blocks $R=(R^{(1)},\dots,R^{(L)})$ and requires
+\begin{equation}
+\textstyle\sum_{b=1}^{L}\bigl(m_b-(n-k)\bigr)\;\ge\;\ell+2\log(1/\varepsilon)
+\quad(\text{e.g. }\ell=2\secpar),
+\label{eq:design}
+\end{equation}
+choosing $L$ from the measured per-block min-entropy $m_b$. This is the
+honest replacement for the previous ``negligible leakage'' statement.
+\end{remark}
+
+\begin{table}[t]
+\centering
+\caption{Notation (extends the reference design's symbol table).}
+\label{tab:notation}
+\small
+\begin{tabularx}{\linewidth}{@{}l X@{}}
+\toprule
+\textbf{Symbol} & \textbf{Meaning}\\
+\midrule
+$\GS$, $\UAV_i$ & ground station; $i$-th UAV\\
+$\TID_i$ & (rotatable) temporary identity of $\UAV_i$\\
+$\PUF_i,\;R,R'$ & PUF of device $i$; enrolment / field response\\
+$\FE=(\Gen,\Rep)$ & fuzzy extractor, \cref{eq:gen,eq:rep}\\
+$P_i=(s_i,\text{seed}_i)$ & \emph{public} helper data\\
+$\mk_i$ & stable per-device master key (never stored on UAV)\\
+$\mk_{\GS}$ & GS-only master key for pairwise credentials\\
+$\Cred_{ij}$ & per-pair peer credential\\
+$K^{i}_{\mathrm{auth}},K^{ij}_{\mathrm{auth}}$ & derived MAC keys\\
+$\SK_i,\SK_{ij}$ & session keys (Phase 2 / Phase 3), forward-secret\\
+$N_x$, $T_x$ & $128$-bit nonce; timestamp\\
+$a,b$; $g^{a},g^{ab}$ & ephemeral X25519 scalars; public shares; shared secret\\
+$\transcript$ & session transcript (all preceding message fields)\\
+$\MAC,\aead,\KDF$ & keyed MAC; AEAD; key-derivation function\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+%=======================================================================
+\section{System and Threat Model}
+\label{sec:model}
+%=======================================================================
+The system has one trusted $\GS$ with tamper-resistant storage and
+$N$ UAVs, each with a PUF, a lightweight processor, and non-volatile memory
+(NVM). We adopt the \textbf{Dolev--Yao} network adversary augmented with
+physical capture and an explicit challenge-oracle capability, so that the
+attack that broke the previous design is \emph{inside} the model:
+\begin{itemize}[leftmargin=1.4em]
+\item \textbf{Network ($\adv_{\mathrm{net}}$).} Reads, injects, modifies,
+reorders, replays, delays, and drops any message.
+\item \textbf{Active challenger ($\adv_{\mathrm{chal}}$).} May attempt to act
+as $\GS$ toward an honest UAV and send \emph{adversarially chosen}
+challenges/nonces (models the old chosen-challenge oracle).
+\item \textbf{Capture ($\adv_{\mathrm{cap}}$).} May capture a chosen device
+$k$ and read its NVM contents $\{\TID_k,P_k,\{\Cred_{kj}\}_j\}$ together with
+any live session keys. By \cref{ass:tamper} it does \emph{not} obtain $\PUF_k$ and hence
+cannot recover $\mk_k$ (which is never stored).
+\item \textbf{Reveal (for PFS).} May, \emph{after} a target session closes,
+learn long-term secrets ($\mk_i$, $\Cred_{ij}$) via a \textsf{Reveal} query.
+\end{itemize}
+The adversary is PPT and cannot invert $h$, forge $\MAC$/$\aead$, break the PUF
+(\cref{ass:puf}), or solve gap-CDH, except with negligible probability. Side
+channels are out of scope (constant-time primitives assumed), consistent
+with prior work.
+
+%=======================================================================
+\section{Design Rationale: From Defects to Guarantees}
+\label{sec:rationale}
+%=======================================================================
+\begin{enumerate}[leftmargin=1.5em,label=\textbf{D\arabic*.}]
+\item \textbf{Stable PUF-derived key, no stored secret (A.1, A.2, A.6).}
+Enrolment fixes a \emph{stable} $\mk_i$ via $\FE$. The UAV regenerates
+$\mk_i$ on demand from its PUF and \emph{public} $P_i$; nothing secret is in
+NVM. Every authenticator is now a $\MAC$ under a key derived from $\mk_i$,
+which only the genuine device (PUF) and $\GS$ (database) can compute.
+\item \textbf{The raw response never leaves the device (A.2).}
+$\FE$ runs entirely on the UAV; the wire never carries $R$ or any
+function of $R$ under an attacker-controlled mask. There is thus no
+response to harvest and no masking to strip.
+\item \textbf{Abort-before-response (A.2).}
+The UAV verifies the $\GS$'s MAC \emph{before} performing any PUF-dependent
+action or emitting any message; a forged $\GS$ message is rejected silently.
+\item \textbf{Per-pair credentials under AEAD (A.3, A.7).}
+Peer trust uses per-pair $\Cred_{ij}$ delivered under
+$\aead.\Enc_{\SK_i}$---confidential and authenticated---replacing the plaintext
+swarm-wide credential. Domain-separated labels and per-message-type tags
+remove reflection/key-confusion.
+\item \textbf{Mandatory authenticated ephemeral DH (A.4).}
+Every session key mixes in a fresh $g^{ab}$ whose public shares are bound
+into the MAC transcript; there is no non-DH fallback.
+\item \textbf{Correct entropy accounting (A.5).}
+\Cref{lem:fe} and \cref{eq:design} replace the false independence claim with
+a min-entropy bound and an explicit design inequality.
+\end{enumerate}
+
+%=======================================================================
+\section{The Hardened Four-Phase Protocol}
+\label{sec:phases}
+%=======================================================================
+
+\subsection{Phase 1 --- Secure Enrolment}
+\label{sec:p1}
+Performed once per device over a secure out-of-band channel.
+
+\begin{algorithm}[h]
+\caption{Phase 1: Enrolment of $\UAV_i$}
+\label{alg:p1}
+\begin{algorithmic}[1]
+\State $\GS$ selects challenge block $\bm{C}_i=(C_i^{(1)},\dots,C_i^{(L)})$;
+       evaluates $R \gets \PUF_i(\bm{C}_i)$ in situ
+\State $(P_i,\mk_i)\gets \FE.\Gen(R)$
+       \Comment{$L$ chosen per \cref{eq:design}}
+\State $\GS$ stores $\langle \TID_i,\bm{C}_i,P_i,\mk_i\rangle$ in
+       tamper-resistant DB
+\State $\UAV_i$ stores $\langle \TID_i,\bm{C}_i,P_i\rangle$ only
+       \Comment{$P_i$ public; \textbf{no secret in NVM}}
+\end{algorithmic}
+\end{algorithm}
+
+\noindent The stored $\mk_i$ is the sole long-term secret and it lives only
+in the $\GS$ tamper-resistant DB; the UAV reconstructs it transiently.
+
+\subsection{Phase 2 --- UAV$\leftrightarrow$GS Mutual Authentication}
+\label{sec:p2}
+A three-message authenticated key exchange. Let
+$K^{i}_{\mathrm{auth}}=\KDF(\mk_i;\lbl{p2-auth})$. Ephemeral X25519 shares
+$g^{a}$ (UAV) and $g^{b}$ (GS) provide forward secrecy.
+
+\begin{algorithm}[h]
+\caption{Phase 2: Mutual authentication and forward-secret keying}
+\label{alg:p2}
+\begin{algorithmic}[1]
+\State \textbf{UAV} $\to$ \textbf{GS}\,($M_1$): draw $N_1,a$;\;
+  $\sigma_1=\MAC_{K^{i}_{\mathrm{auth}}}(\lbl{M1}\catt \TID_i\catt N_1\catt
+  T_1\catt g^{a})$;\; send $\langle \TID_i,N_1,T_1,g^{a},\sigma_1\rangle$
+\State \textbf{GS}: reject if $|T_{\text{now}}-T_1|>\Delta T$ or $N_1$ seen;
+  look up $\mk_i$; verify $\sigma_1$; else abort
+\State \textbf{GS} $\to$ \textbf{UAV}\,($M_2$): draw $N_2,b$;\;
+  $\sigma_2=\MAC_{K^{i}_{\mathrm{auth}}}(\lbl{M2}\catt \TID_i\catt N_1\catt
+  N_2\catt T_2\catt g^{a}\catt g^{b})$;\;
+  send $\langle N_2,T_2,g^{b},\sigma_2\rangle$
+\State \textbf{UAV}: $\mk_i\gets \FE.\Rep(\PUF_i(\bm{C}_i),P_i)$;
+  \textbf{verify $\sigma_2$ \emph{first}}; if invalid, abort silently
+  \Comment{no response emitted $\Rightarrow$ no oracle}
+\State \textbf{UAV} $\to$ \textbf{GS}\,($M_3$):
+  $\sigma_3=\MAC_{K^{i}_{\mathrm{auth}}}(\lbl{M3}\catt\transcript)$;\;
+  send $\langle\sigma_3\rangle$ \Comment{$\transcript=$ all $M_1,M_2$ fields}
+\State \textbf{Both}: $\SK_i=\KDF(\mk_i\catt g^{ab}\catt\transcript;
+  \lbl{p2-sess})$; $\GS$ rotates $\TID_i$
+\end{algorithmic}
+\end{algorithm}
+
+\begin{remark}
+No PUF response or masked response appears in any message; $R$ is consumed
+locally by $\FE.\Rep$ (\cref{eq:rep}). $\GS$ already holds $\mk_i$, so no
+challenge--response value is transmitted. $\mk_i$ is reusable, so there is no
+single-use challenge budget to exhaust (A.6); the optional block set
+$\bm{C}_i$ supports periodic key refresh, not per-session consumption.
+\end{remark}
+
+\subsection{Phase 3 --- UAV$\leftrightarrow$UAV Peer Authentication}
+\label{sec:p3}
+$\GS$ mints \emph{per-pair} credentials and distributes them under AEAD.
+
+\begin{algorithm}[h]
+\caption{Phase 3: Per-pair credential issuance and peer handshake}
+\label{alg:p3}
+\begin{algorithmic}[1]
+\State \textbf{Issuance.} For peers $i<j$: $\Cred_{ij}=
+  \KDF(\mk_{\GS};\lbl{pair-cred}\catt i\catt j)$.
+  $\GS\!\to\!\UAV_i$: $\aead.\Enc_{\SK_i}(\eta;\, i\catt j;\,\Cred_{ij})$;
+  symmetrically to $\UAV_j$
+\State $\UAV_i$: $\Cred_{ij}\gets\aead.\Dec_{\SK_i}(\cdots)$; abort on $\bot$
+  \Comment{confidential + authenticated}
+\State Let $K^{ij}_{\mathrm{auth}}=\KDF(\Cred_{ij};\lbl{peer-auth})$
+\State \textbf{$\UAV_i\!\to\!\UAV_j$}\,($P_1$): draw $n_i,a'$;
+  $\tau_1=\MAC_{K^{ij}_{\mathrm{auth}}}(\lbl{P1}\catt i\catt j\catt n_i\catt
+  T\catt g^{a'})$
+\State \textbf{$\UAV_j\!\to\!\UAV_i$}\,($P_2$): verify $\tau_1$; draw
+  $n_j,b'$; $\tau_2=\MAC_{K^{ij}_{\mathrm{auth}}}(\lbl{P2}\catt i\catt j\catt
+  n_i\catt n_j\catt g^{a'}\catt g^{b'})$
+\State \textbf{$\UAV_i\!\to\!\UAV_j$}\,($P_3$): verify $\tau_2$;
+  $\tau_3=\MAC_{K^{ij}_{\mathrm{auth}}}(\lbl{P3}\catt\transcript)$
+\State \textbf{Both}: $\SK_{ij}=\KDF(\Cred_{ij}\catt g^{a'b'}\catt
+  \transcript;\lbl{peer-sess})$
+\end{algorithmic}
+\end{algorithm}
+
+\begin{remark}
+Each message type carries a distinct tag ($\lbl{P1},\lbl{P2},\lbl{P3}$) and a
+freshness element ($n_i,n_j,T$), removing the reflection/oracle-confusion of
+A.7; $\SK_{ij}$ uses the label $\lbl{peer-sess}$, independent of the
+authenticator key $K^{ij}_{\mathrm{auth}}$ (label $\lbl{peer-auth}$), so key
+and authenticator can never collide.
+\end{remark}
+
+\subsection{Phase 4 --- Session Keys and Mandatory Forward Secrecy}
+\label{sec:p4}
+Phase 4 is the keying already embedded in
+\cref{alg:p2,alg:p3}: authenticated ephemeral X25519 is \emph{mandatory}.
+Both session keys have the form
+\begin{equation}
+\SK=\KDF(\underbrace{k_{\text{lt}}}_{\mk_i\text{ or }\Cred_{ij}}\catt
+   g^{xy}\catt \transcript;\ \ell),
+\label{eq:sk}
+\end{equation}
+with the ephemeral public shares $g^{x},g^{y}$ authenticated inside the MAC
+transcript. There is no non-DH derivation path; if the ephemeral exchange is
+absent the session fails closed.
+
+%=======================================================================
+\section{Security Theorems and Game-Based Proofs}
+\label{sec:proofs}
+%=======================================================================
+Throughout, $q$ bounds the number of sessions/oracle queries and reductions
+are tight up to the stated additive terms.
+
+\begin{theorem}[Phase-2 mutual authentication]\label{thm:p2}
+Under \cref{ass:puf}, EUF-CMA security of $\MAC$, and PRF security of
+$\KDF$, \cref{alg:p2} achieves mutual entity authentication with injective
+agreement on $\transcript$. For every PPT $\adv$,
+\[
+\Adv^{\mathrm{p2\text{-}auth}}(\adv)\le
+2\,\Adv^{\mathrm{euf}}_{\MAC}(\adv')+\Adv^{\mathrm{prf}}_{\KDF}(\adv'')
++q^2/2^{128}+\negl(\secpar).
+\]
+\end{theorem}
+\begin{proof}
+$K^{i}_{\mathrm{auth}}=\KDF(\mk_i;\lbl{p2-auth})$. \textbf{Game}~$G_0$ is the
+real authentication game. \textbf{$G_1$} replaces $K^{i}_{\mathrm{auth}}$ by
+a uniform key; by PRF security of $\KDF$ and, beneath it, near-uniformity of
+$\mk_i$ (\cref{lem:fe}, so $\mk_i$ is unknown to any $\adv$ lacking either
+the PUF or the DB, by \cref{ass:puf}), $|\Pr[G_1]-\Pr[G_0]|\le
+\Adv^{\mathrm{prf}}_{\KDF}+\negl$. \emph{(GS authenticates UAV.)} A UAV is
+accepted only if $\sigma_1$ verifies under $K^{i}_{\mathrm{auth}}$; producing
+a fresh valid $\sigma_1$ without the key is an EUF-CMA forgery. \emph{(UAV
+authenticates GS.)} Symmetrically for $\sigma_2$; crucially every input of
+$\sigma_2$ is either public \emph{or} authenticated, but the \emph{key} is
+secret---unlike the previous $\beta_1$, which was unkeyed. A nonce collision
+($N_1$ or $N_2$) that would permit transcript reuse occurs with probability
+$\le q^2/2^{128}$. Absent forgery and collision, accepting parties share the
+same $\transcript$ (injective agreement). Summing the two forgery terms
+gives the bound.\qed
+\end{proof}
+
+\begin{corollary}[No chosen-challenge PUF oracle]\label{cor:nooracle}
+An active $\adv_{\mathrm{chal}}$ impersonating $\GS$ cannot obtain any PUF
+response value. Hence the modelling-attack vector of defect~A.2 is closed
+without any physical assumption beyond \cref{ass:puf}.
+\end{corollary}
+\begin{proof}
+By line~4 of \cref{alg:p2} the UAV emits $M_3$ only after $\sigma_2$
+verifies. By \cref{thm:p2}, forging $\sigma_2$ succeeds with probability
+$\le\Adv^{\mathrm{euf}}_{\MAC}+\negl$. When verification fails the UAV emits
+nothing, and even when it succeeds the wire carries only $\sigma_3$, a MAC
+over public transcript fields---never $R$ or a function of $R$ under an
+attacker-chosen mask. Thus no CRP is revealed for any (chosen or otherwise)
+challenge.\qed
+\end{proof}
+
+\begin{theorem}[Phase-3 peer mutual authentication]\label{thm:p3}
+Under EUF-CMA of $\MAC$ and INT-CTXT of $\aead$, \cref{alg:p3} achieves peer
+mutual authentication with injective agreement, without $\GS$ participation
+at handshake time, and with no per-pair secret ever exposed in transit:
+\[
+\Adv^{\mathrm{p3\text{-}auth}}(\adv)\le
+2\,\Adv^{\mathrm{euf}}_{\MAC}(\adv')+
+2\,\Adv^{\mathrm{int}}_{\aead}(\adv'')+q^2/2^{128}+\negl.
+\]
+\end{theorem}
+\begin{proof}
+\emph{Issuance.} $\Cred_{ij}$ is delivered as $\aead.\Enc_{\SK_i}$; by
+INT-CTXT the adversary cannot produce a ciphertext the UAV accepts as a
+different credential, and by IND-CCA it learns nothing about $\Cred_{ij}$
+(used below in \cref{thm:secrecy}). $\SK_i$ is a fresh, forward-secret key
+(\cref{thm:p2,thm:pfs}) held only by $\UAV_i$ and $\GS$. Hence a PPT
+adversary's view is independent of $\Cred_{ij}$ except with
+$\le\Adv^{\mathrm{int}}_{\aead}$ per endpoint. \emph{Handshake.} Given secret
+$\Cred_{ij}$, the tokens $\tau_1,\tau_2,\tau_3$ are MACs under
+$K^{ij}_{\mathrm{auth}}$; each carries a distinct type tag and binds both
+identities and both nonces, so a fresh acceptance forces a matching sender
+computation---otherwise an EUF-CMA forgery. A dishonest \emph{third} party,
+even one holding some $\Cred_{k\ell}$, has no information about $\Cred_{ij}$
+(distinct KDF inputs), so it cannot fill in $i$'s identity, unlike the
+previous swarm-wide $\Cred$. Nonce collisions contribute $\le q^2/2^{128}$.\qed
+\end{proof}
+
+\begin{theorem}[Replay and MITM resistance]\label{thm:replay}
+\cref{alg:p2,alg:p3} resist replay and active man-in-the-middle attacks.
+\end{theorem}
+\begin{proof}
+Every accepted message is a MAC over a transcript that includes a fresh
+$128$-bit nonce, a timestamp checked within $\Delta T$, a per-message type
+tag, and (from $M_2$/$P_2$ onward) the peer's nonce. A replay reuses a stale
+nonce/timestamp and is rejected by the freshness cache or window; a
+cross-session or cross-type substitution changes a MAC input and, by
+\cref{thm:p2,thm:p3}, cannot be re-authenticated without the key. An active
+MITM altering any field invalidates the covering MAC; injective agreement on
+$\transcript$ (\cref{thm:p2,thm:p3}) then guarantees both endpoints share
+the identical view. The distinct type tags additionally prevent reflecting a
+$P_1$ token as a $P_3$ token (closing A.7).\qed
+\end{proof}
+
+\begin{theorem}[Physical-capture resistance]\label{thm:capture}
+Capture of $\UAV_k$ (reading its NVM) does not let $\adv_{\mathrm{cap}}$
+(i)~impersonate any $\UAV_m$ ($m\ne k$) to $\GS$ in a fresh Phase~2, nor
+(ii)~impersonate any peer pair $(m,\ell)$ with $k\notin\{m,\ell\}$ in
+Phase~3. The peer-authentication blast radius of a captured node is exactly
+its $N-1$ incident links.
+\end{theorem}
+\begin{proof}
+The captured NVM contains $\{\TID_k,P_k,\{\Cred_{kj}\}_j,\text{live }
+\SK\}$. \emph{(i)} A fresh Phase~2 as $\UAV_m$ requires $K^{m}_{\mathrm{auth}}
+=\KDF(\mk_m;\cdot)$; $\mk_m$ is never stored (Alg.~\ref{alg:p1}) and, by
+\cref{ass:tamper}, is not recoverable from $k$'s silicon, while
+\cref{ass:puf} makes it unpredictable. Hence forging Phase~2 for $m\ne k$
+reduces to EUF-CMA/PUF, negligible. \emph{(ii)} Phase~3 for $(m,\ell)$
+requires $\Cred_{m\ell}=\KDF(\mk_{\GS};\cdot)$; the captured set
+$\{\Cred_{kj}\}$ is independent of $\Cred_{m\ell}$ for $k\notin\{m,\ell\}$
+(distinct KDF inputs, $\mk_{\GS}$ never leaves $\GS$), so acceptance reduces
+to EUF-CMA. Only pairs incident to $k$ share a captured credential, giving
+the stated $N-1$ blast radius---a $\binom{N}{2}^{-1}(N-1)$ fraction versus
+the previous whole-swarm compromise.\qed
+\end{proof}
+
+\begin{theorem}[Session-key secrecy]\label{thm:secrecy}
+For an adversary that does not corrupt an endpoint of the target session,
+$\SK_i$ (resp.\ $\SK_{ij}$) is indistinguishable from uniform:
+$\Adv^{\mathrm{key\text{-}ind}}(\adv)\le \Adv^{\mathrm{prf}}_{\KDF}+
+\Adv^{\mathrm{gap\text{-}cdh}}+\negl$.
+\end{theorem}
+\begin{proof}
+By \cref{eq:sk} the key is $\KDF(k_{\text{lt}}\catt g^{xy}\catt\transcript)$.
+Two independent secrets protect it: the long-term key $k_{\text{lt}}$
+($\mk_i$ by \cref{lem:fe}+\cref{ass:puf}, or $\Cred_{ij}$ by IND-CCA of the
+AEAD delivery, \cref{thm:p3}) and the DH secret $g^{xy}$. Model $\KDF$ as a
+PRF: replacing it by a random function costs $\Adv^{\mathrm{prf}}_{\KDF}$; the
+input $g^{xy}$ is unpredictable under gap-CDH given only $g^{x},g^{y}$
+(authenticated, so not adversarially substituted, by
+\cref{thm:p2,thm:p3}). Hence the output is uniform up to the stated terms.\qed
+\end{proof}
+
+\begin{theorem}[Perfect forward secrecy]\label{thm:pfs}
+If the ephemeral scalars are erased after use, then revealing the long-term
+secrets ($\mk_i$, $\Cred_{ij}$, and even $\mk_{\GS}$) \emph{after} a target
+session closes does not compromise that session's key:
+$\Adv^{\mathrm{pfs}}(\adv)\le \Adv^{\mathrm{gap\text{-}cdh}}+
+\Adv^{\mathrm{prf}}_{\KDF}+\negl$.
+\end{theorem}
+\begin{proof}
+Post-session \textsf{Reveal} gives $\adv$ the value $k_{\text{lt}}$ but not
+the erased $x,y$. The key \cref{eq:sk} still depends on $g^{xy}$, which
+$\adv$ must compute from the transcript shares $g^{x},g^{y}$---a gap-CDH
+instance, since the shares were authenticated (no MITM substitution by
+\cref{thm:p2,thm:p3}) and the scalars are gone. Reducing $\KDF$ to a PRF on
+the now-unknown input $g^{xy}$ yields indistinguishability up to the stated
+terms. Because the exchange is mandatory and fail-closed (\cref{sec:p4}),
+there is no non-DH session key to attack---removing the silent-fallback
+defect of A.4.\qed
+\end{proof}
+
+%=======================================================================
+\section{Symbolic Model and Mechanised Verification}
+\label{sec:symbolic}
+%=======================================================================
+The game-based proofs are complemented by a symbolic model in the
+\textbf{Tamarin} multiset-rewriting calculus (chosen over ProVerif because
+the protocol uses stateful credential issuance and the analysis benefits
+from native reasoning about freshness and reveal rules). We summarise the
+model; the idealisations are stated explicitly for honesty.
+
+\paragraph{Model.}
+$h,\MAC,\aead,\KDF$ are free function symbols with the usual equational
+theory
+\[
+\aead.\Dec_k(\eta;\mathit{ad};\,\aead.\Enc_k(\eta;\mathit{ad};m))=m.
+\]
+Each PUF is a private
+per-device function $\mathsf{puf}(\sim\!\mathit{seed}_i,c)$; helper data and
+all wire terms are public. $\GS$'s database and issued credentials are
+linear facts. Fresh values ($\sim\!N$, $\sim\!a$) model nonces and ephemeral
+scalars; $g^{ab}$ is modelled with the built-in Diffie--Hellman theory.
+
+\paragraph{Adversary and reveal rules.}
+The Dolev--Yao adversary controls the network. Additional rules
+\texttt{Reveal\_NVM(k)} (emits $\TID_k,P_k,\{\Cred_{kj}\}$ but \emph{not}
+$\mathsf{puf}_k$ or $\mk_k$) and \texttt{Reveal\_LT} (emits $\mk_i$ or
+$\Cred_{ij}$, timestamped after session close) encode capture
+(\cref{thm:capture}) and PFS (\cref{thm:pfs}).
+
+\paragraph{Lemmas (to be discharged by \texttt{tamarin-prover --prove}).}
+\begin{verbatim}
+lemma p2_injective_agreement:   // Theorem 1
+  "All U GS t #i. Commit(U,GS,<'p2',t>)@i
+      ==> (Ex #j. Running(GS,U,<'p2',t>)@j & j<i)
+          & not (Ex U2 GS2 #i2. Commit(U2,GS2,<'p2',t>)@i2 & not #i2=#i)"
+
+lemma p3_injective_agreement:   // Theorem 2
+  "All i j t #x. Commit(i,j,<'p3',t>)@x
+      ==> (Ex #y. Running(j,i,<'p3',t>)@y & y<x)"
+
+lemma no_replay:                // Theorem 3
+  "All t #a #b. Accept(t)@a & Accept(t)@b ==> #a=#b"
+
+lemma capture_isolation:        // Theorem 4
+  "All m l #x. PeerKey(m,l)@x & (Ex k #r. RevealNVM(k)@r & not k=m & not k=l)
+      ==> not (Ex #e. K(SKpair(m,l))@e)"
+
+lemma key_secrecy:              // Theorem 5
+  "All k #x. SessionKey(k)@x & not (Ex #r. RevealEndpoint()@r)
+      ==> not (Ex #e. K(k)@e)"
+
+lemma forward_secrecy:          // Theorem 6
+  "All k #x. SessionKey(k)@x
+      & (All #r. RevealLT()@r ==> x<r)     // reveal only after close
+      ==> not (Ex #e. K(k)@e)"
+\end{verbatim}
+
+\paragraph{Idealisations (disclosed).}
+(i)~The noisy PUF is modelled as a noiseless private function---the fuzzy
+extractor's error tolerance (\cref{lem:fecorrect}) is a computational
+correctness property outside the symbolic model. (ii)~The masked-value
+constructions are replaced by symmetric encryption $\mathsf{senc}$, and XOR
+is not modelled as an equational theory, so the symbolic layer over-abstracts
+confidentiality; the computational layer (\cref{thm:secrecy}) covers those
+details. A deliberate re-introduction of the old plaintext-credential rule
+must make \texttt{key\_secrecy} fail---a regression test for the model
+itself.
+
+%=======================================================================
+\section{Comparison with the Previous Specification}
+\label{sec:compare}
+%=======================================================================
+\begin{table}[h]
+\centering
+\caption{Security properties: previous vs.\ hardened theory.}
+\label{tab:compare}
+\small
+\begin{tabularx}{\linewidth}{@{}X c c@{}}
+\toprule
+\textbf{Property / defect} & \textbf{Previous} & \textbf{This work}\\
+\midrule
+GS$\to$UAV authentication (A.1) & \textcolor{red}{unsound} & keyed MAC, Thm.~\ref{thm:p2}\\
+Chosen-challenge PUF oracle (A.2) & \textcolor{red}{present} & closed, Cor.~\ref{cor:nooracle}\\
+Peer credential (A.3) & \textcolor{red}{plaintext, swarm-wide} & per-pair AEAD, Thm.~\ref{thm:p3}\\
+Forward secrecy (A.4) & \textcolor{red}{none / silent no-DH} & mandatory, Thm.~\ref{thm:pfs}\\
+Helper-data assumption (A.5) & \textcolor{red}{false ``independence''} & $\entropy$ bound, Lem.~\ref{lem:fe}\\
+CRP exhaustion / DoS (A.6) & \textcolor{red}{single-use, unauth.\ $M_1$} & reusable $\mk_i$, auth.\ $M_1$\\
+Domain separation / freshness (A.7) & \textcolor{red}{absent} & labels + tags + nonces\\
+Capture blast radius & whole swarm & $N{-}1$ links, Thm.~\ref{thm:capture}\\
+Proof rigour & informal sketches & games + symbolic model\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+%=======================================================================
+\section{Conclusion}
+%=======================================================================
+The hardened theory roots all authentication in a stable, PUF-derived master
+key that is never stored, keeps the raw PUF response off the wire, replaces
+the swarm-wide plaintext credential with per-pair AEAD-protected secrets, and
+makes an authenticated ephemeral Diffie--Hellman exchange a mandatory,
+fail-closed component of every session key. The helper-data assumption is
+restated as a correct min-entropy bound with an explicit design inequality.
+Six theorems---proved by reduction to standard assumptions and mirrored by a
+mechanisable symbolic model---replace the previous informal and, in four
+cases, unsound arguments. Every defect catalogued in \cref{tab:flaws} is
+resolved (\cref{tab:compare}).
+
+\end{document}

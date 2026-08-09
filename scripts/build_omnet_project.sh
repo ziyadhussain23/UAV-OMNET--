@@ -2,49 +2,35 @@
 set -euo pipefail
 
 # Build helper for the OMNeT++ UAV authentication project.
+#
+# All cryptography is provided by OpenSSL 3.x (SHA3, HMAC, HKDF, ChaCha20-Poly1305,
+# X25519), so -lcrypto is the only external dependency. SPONGENT-160 and Ascon-128a
+# are vendored under src/crypto/ and need no link flags.
+#
 # Optional environment flags:
-#   USE_LIBCORRECT=1 -> compile with -DUSE_LIBCORRECT -lcorrect
-#   USE_SODIUM=1     -> compile with -DUSE_SODIUM -lsodium
+#   BUILD_MODE=debug   -> build with MODE=debug (asserts live; default is release)
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 SRC_DIR="$ROOT_DIR/src"
 
 if ! command -v opp_makemake >/dev/null 2>&1; then
-    echo "opp_makemake not found. Source your OMNeT++ environment first (e.g., source setenv)."
+    echo "opp_makemake not found. Source your OMNeT++ environment first:"
+    echo "    source ~/omnetpp-6.3.0/setenv"
+    echo "    export PATH=\"\$HOME/omnetpp-6.3.0/bin:\$PATH\""
     exit 1
 fi
 
-EXTRA_CFLAGS=""
-EXTRA_LIBS="-lcrypto"   # SHA3Hash.cc uses OpenSSL EVP unconditionally
-
-if [[ "${USE_LIBCORRECT:-0}" == "1" ]]; then
-    EXTRA_CFLAGS+=" -DUSE_LIBCORRECT"
-    EXTRA_LIBS+=" -lcorrect"
-fi
-
-if [[ "${USE_SODIUM:-0}" == "1" ]]; then
-    EXTRA_CFLAGS+=" -DUSE_SODIUM"
-    EXTRA_LIBS+=" -lsodium"
-fi
+MODE="${BUILD_MODE:-release}"
 
 cd "$SRC_DIR"
 
-ARGS=(-f --deep -o uavauthsim)
+# -I.  makes every header reachable as "crypto/CryptoSuite.h" from anywhere in the
+#      tree, instead of fragile relative paths like "../crypto/CryptoSuite.h".
+# --deep re-globs all .cc under src/, so newly added files are picked up. The
+#      generated Makefile has a STATIC object list, which is why this script must be
+#      re-run after adding or removing a source file (never plain `make`).
+opp_makemake -f --deep -I. -o uavauthsim -lcrypto
 
-if [[ -n "$EXTRA_CFLAGS" ]]; then
-    # shellcheck disable=SC2206
-    DEFS=($EXTRA_CFLAGS)
-    ARGS+=("${DEFS[@]}")
-fi
+make MODE="$MODE"
 
-if [[ -n "$EXTRA_LIBS" ]]; then
-    # shellcheck disable=SC2206
-    LIBFLAGS=($EXTRA_LIBS)
-    ARGS+=("${LIBFLAGS[@]}")
-fi
-
-opp_makemake "${ARGS[@]}"
-
-make MODE=release
-
-echo "Build finished: $SRC_DIR/uavauthsim"
+echo "Build finished: $SRC_DIR/uavauthsim (MODE=$MODE)"

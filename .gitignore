@@ -1,15 +1,39 @@
-# Build artifacts
+# Build artifacts (new tree)
 src/*.o
 src/*.so
 src/uavauthsim
+src/uavauthsim_dbg
 src/Makefile
 out/
+tests/build/
 
-# OMNeT++ results
+# Build artifacts (archived tree)
+old_implementation/src/*.o
+old_implementation/src/*.so
+old_implementation/src/uavauthsim
+old_implementation/src/Makefile
+
+# OMNeT++ raw results
 simulations/results/*.vec
 simulations/results/*.vci
 simulations/results/*.sca
 simulations/results/*.elog
+simulations/results/raw/
+simulations/results/archive/
+
+# LaTeX intermediates
+*.aux
+*.log
+*.out
+*.toc
+*.nav
+*.snm
+*.synctex.gz
+
+# Python
+__pycache__/
+*.pyc
+.venv/
 
 # Temporary and system files
 *.swp
