@@ -214,6 +214,14 @@ class UavProtocol {
     /// Injected directly in the capture-attack scenario, bypassing Phase 2.
     void injectPeerCredential(int peerId, const Bytes& cred, const Bytes& peerTid);
     bool ephemeralErased() const { return phase2_.ephemeralErased; }
+
+    /// Control arm for the security evaluation. In legacy mode the UAV does NOT
+    /// verify the ground station's authenticator on M2, reproducing the flaw the
+    /// audit found in the original protocol. Its only purpose is to show that the
+    /// attack harness can actually detect a successful attack -- without it,
+    /// "every attack failed" could equally mean the attacker is broken.
+    void setLegacyNoGsAuth(bool enabled) { legacyNoGsAuth_ = enabled; }
+    bool legacyNoGsAuth() const { return legacyNoGsAuth_; }
     size_t replayHits() const { return replay_.hits(); }
     int id() const { return uavId_; }
 
@@ -228,6 +236,7 @@ class UavProtocol {
     crypto::Drbg& rng_;
     uint32_t windowMs_;
 
+    bool legacyNoGsAuth_ = false;
     DeviceState state_;
     Phase2UavSession phase2_;
     std::map<int, Phase3Session> peers_;

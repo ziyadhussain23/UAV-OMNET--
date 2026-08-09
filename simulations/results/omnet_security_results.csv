@@ -1,0 +1,6 @@
+config,protocol_variant,attack,attempts,accepted,oracle_replies,credentials_exposed,success_rate,expected_success,outcome_matches_expectation,observed_messages,devices_authenticated
+AtkCredentialSniff,hardened,credsniff,10,0,0,0,0.0,0,1,175,1
+AtkGsImpersonate,hardened,gsimpersonate,8,0,0,0,0.0,0,1,10,0
+AtkLegacyGsImpersonate,legacy,gsimpersonate,8,1,1,0,0.125,1,1,11,0
+AtkReplayM1,hardened,credsniff,10,0,0,0,0.0,0,1,175,1
+AtkReplayM1,hardened,replay,1,0,0,0,0.0,0,1,175,1

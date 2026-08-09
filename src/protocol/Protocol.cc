@@ -512,7 +512,10 @@ StepResult UavProtocol::handleM2(const Message& m2, uint32_t nowMs) {
     const int64_t tm = monotonicNs();
     const bool macOk = suite_.macVerify(phase2_.authKey, input2, m2.get(FieldId::MAC_TAG));
     timing.macMs += msSince(tm);
-    if (!macOk) return fail(AbortReason::MacVerifyFailed, timing);
+    // In legacy mode the result is computed but ignored, which is exactly the
+    // defect being demonstrated: the ground station is never authenticated, so a
+    // forged M2 draws a reply and the UAV becomes a read-out oracle.
+    if (!macOk && !legacyNoGsAuth_) return fail(AbortReason::MacVerifyFailed, timing);
 
     phase2_.n2 = n2;
     append(phase2_.transcript, input2);

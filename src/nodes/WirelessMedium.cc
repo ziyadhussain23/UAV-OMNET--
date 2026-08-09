@@ -97,6 +97,16 @@ void WirelessMedium::transmit(SimMessage* msg, cModule* source, cModule* dest) {
     row.injected = msg->injectedByAttacker;
     row.tampered = msg->tampered;
 
+    // The attacker's own injected traffic is delivered straight to its target.
+    // Without this it would be caught by the interception rules below and routed
+    // back to the attacker, so no forged message would ever reach a victim.
+    if (msg->injectedByAttacker || source == attacker_) {
+        row.delivered = true;
+        trace_.push_back(row);
+        sendDirect(msg, delaySec, SIMTIME_ZERO, dest, "in");
+        return;
+    }
+
     // Fast path: with no attacker attached this is exactly a direct send, so
     // baseline timings remain comparable with the attack configurations.
     if (!tapEnabled_ || attacker_ == nullptr) {
@@ -114,6 +124,19 @@ void WirelessMedium::transmit(SimMessage* msg, cModule* source, cModule* dest) {
         row.delivered = true;
         trace_.push_back(row);
         sendDirect(msg, delaySec, SIMTIME_ZERO, dest, "in");
+        return;
+    }
+
+    // Ground-station impersonation: intercept ALL UAV->GS Phase-2 traffic. The
+    // request must not reach the real ground station (or it would answer and the
+    // attacker's forgery would lose the race), and the victim's confirmation must
+    // arrive at the attacker -- that reply IS the oracle signal being measured.
+    if (attackMode_ == "impersonate" && msg->payload.senderId >= 0 &&
+        (msg->payload.type == protocol::MessageType::P2_M1_AUTH_REQUEST ||
+         msg->payload.type == protocol::MessageType::P2_M3_UAV_CONFIRM)) {
+        row.delivered = false;
+        trace_.push_back(row);
+        sendDirect(msg, delaySec, SIMTIME_ZERO, attacker_, "in");
         return;
     }
 

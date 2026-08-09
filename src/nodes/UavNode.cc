@@ -63,6 +63,9 @@ void UavNode::initialize(int stage) {
             uavId_, *suite_, feParams_, *puf_, *rng_,
             static_cast<uint32_t>(par("timestampWindowMs").intValue()));
 
+        if (par("protocolVariant").stdstringValue() == "legacy")
+            proto_->setLegacyNoGsAuth(true);
+
         authLatencySignal_ = registerSignal("authLatency");
         peerAuthLatencySignal_ = registerSignal("peerAuthLatency");
         commOverheadSignal_ = registerSignal("commOverhead");

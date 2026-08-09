@@ -1,3 +1,4 @@
+import nodes.AttackerNode;
 import nodes.GroundStationNode;
 import nodes.UavNode;
 import nodes.WirelessMedium;
@@ -16,6 +17,8 @@ network UavAuthNetwork
 {
     parameters:
         int numUAVs = default(10);
+        bool enableAttacker = default(false);
+        string attackMode = default("eavesdrop");
         string suite = default("sha3");
         string feProfile = default("bch255-131-18");
         string pufModel = default("ideal");
@@ -35,6 +38,11 @@ network UavAuthNetwork
             pufNoiseBer = parent.pufNoiseBer;
             assumedMinEntropyRate = parent.assumedMinEntropyRate;
             @display("p=275,175");
+        }
+        attacker[enableAttacker ? 1 : 0]: AttackerNode {
+            attackMode = parent.attackMode;
+            suite = parent.suite;
+            @display("p=40,40");
         }
         uav[numUAVs]: UavNode {
             uavId = index;

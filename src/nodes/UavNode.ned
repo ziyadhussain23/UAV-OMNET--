@@ -30,6 +30,10 @@ simple UavNode
         bool fullMesh = default(true);
         int timestampWindowMs = default(5000);
 
+        // "hardened" (the specified protocol) | "legacy" (the audited protocol,
+        // used only as the security control arm)
+        string protocolVariant = default("hardened");
+
         @display("i=misc/aircraft;is=s");
         @signal[authLatency](type=double);
         @signal[peerAuthLatency](type=double);
