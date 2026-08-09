@@ -116,3 +116,50 @@ weakness, since each response bit is a linear function of 129 delay weights and
 about 129 challenge–response pairs suffice to model the device. That is a
 property of the challenges, not of the response bits, and it is the reason the
 protocol never exposes a response.
+
+## 7. The speed comparison does not survive same-platform measurement
+
+`tests/bench_pki_baseline.cc` measures RSA, ECDSA, ECDH and X25519 with the same
+OpenSSL build, on the same host, using the same clock as the protocol. Median
+per-operation cost (OpenSSL 3.5.5, x86-64):
+
+| operation | median |
+|---|---|
+| RSA-2048 verify | **33 us** |
+| RSA-2048 sign | 1049 us |
+| ECDSA P-256 sign | 44 us |
+| ECDSA P-256 verify | 109 us |
+| ECDH P-256 derive | 91 us |
+| X25519 keygen | 66 us |
+| X25519 derive | 126 us |
+| our hash160 | 1.0 us |
+| our MAC | 3.8 us |
+| our KDF | 8.0 us |
+| our AEAD seal | 1.2 us |
+
+Two consequences, both of which contradict the earlier manuscript.
+
+**The "8-15 ms for RSA-2048 verification" figure is wrong by two orders of
+magnitude.** Verification with a small public exponent costs 33 us here. Any
+speedup multiplier derived from that figure — the "21x faster than RSA" headline
+among them — has to go.
+
+**This protocol is not dramatically faster than ECC; it is comparable.** Each
+handshake performs an X25519 keygen plus a derive, about 190 us of public-key
+work, against roughly 91-155 us for an ECDH or ECDSA exchange. Once the mandatory
+ephemeral exchange is included — and it is mandatory, because forward secrecy
+depends on it — the protocol sits in the same performance class as the schemes it
+was previously claimed to beat by an order of magnitude.
+
+The defensible claims are therefore about properties, not speed:
+
+- no long-term secret is stored on the device (the master key is regenerated from
+  the PUF on demand), so a captured drone yields no key material;
+- no certificate or PKI infrastructure is required;
+- peer authentication needs no ground-station round trip;
+- a captured node's exposure is bounded to its own N-1 links;
+- the symmetric core is small (hash 1.0 us, MAC 3.8 us), which is what matters for
+  a hardware target, and the gate-equivalent argument is unaffected.
+
+The evaluation section should be rewritten around those, with the same-platform
+table above replacing the cross-platform citations.
