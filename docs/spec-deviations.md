@@ -89,3 +89,30 @@ blocks each contributes ~118 bits at rate 0.95, and L = 4 gives 473 ≥ 384.
 
 Consequently the paper's remark that "128 × 0.03 ≈ 3.84 expected flips, well
 within t = 18" should read 255 × 0.03 ≈ 7.65.
+
+## 6. Measured min-entropy vs the assumed rate
+
+The PUF characterisation found that the NIST SP 800-90B MCV estimator's 99%
+confidence correction alone caps the *corrected* min-entropy rate of any source —
+including a perfect one — at about 0.854 bit/bit when measured over 1000 devices.
+Reaching a corrected rate of 0.95 requires roughly 10⁴ devices.
+
+The fuzzy extractor's default `assumedMinEntropyRate = 0.95` is therefore
+justifiable only from a large-population measurement. Measured values:
+
+| source | corrected MCV (D=1000) | uncorrected MCV (D=40000) |
+|---|---|---|
+| uniform reference | 0.8522 | 0.9939 |
+| ideal PRF model | 0.8544 | 0.9924 |
+| arbiter (128-stage) | 0.8562 | 0.9952 |
+
+Both the corrected and uncorrected rates are exposed on `EntropyEstimate`. If the
+paper wants to claim 0.95 it must cite a measurement at D ≈ 10⁴; otherwise the
+assumed rate should be lowered, which costs one extra block (L = 5 rather than 4
+at rate 0.854).
+
+Separately: no bit-level entropy estimator can see an arbiter PUF's real
+weakness, since each response bit is a linear function of 129 delay weights and
+about 129 challenge–response pairs suffice to model the device. That is a
+property of the challenges, not of the response bits, and it is the reason the
+protocol never exposes a response.

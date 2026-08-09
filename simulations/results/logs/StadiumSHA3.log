@@ -4,465 +4,145 @@ See the license for distribution terms and warranty disclaimer
 
 Setting up Cmdenv...
 
-Loading NED files from /home/md-ziyad-hussain/UAV-OMNET++/src:  3
+Loading NED files from /home/md-ziyad-hussain/UAV-OMNET++/src:  4
 Loading NED files from /home/md-ziyad-hussain/UAV-OMNET++/simulations:  1
 
 Preparing for running configuration StadiumSHA3, run #0...
-Scenario: $hashMode="sha3", $repetition=0
-Assigned runID=StadiumSHA3-0-20260428-20:34:26-419885
-Setting up network "UAVAuthNetwork"...
+Assigned runID=StadiumSHA3-0-20260809-23:07:20-359376
+Setting up network "UavAuthNetwork"...
 Initializing...
-Initializing module UAVAuthNetwork, stage 0
-Initializing module UAVAuthNetwork.controller, stage 0
-Initializing module UAVAuthNetwork.groundStation, stage 0
-[INFO]	[GS] Enrollment complete for 10 UAVs, hashMode=sha3
-Initializing module UAVAuthNetwork.uav[0], stage 0
-[INFO]	[UAV 0] initialized with tempId=UAV_0, hashMode=sha3
-Initializing module UAVAuthNetwork.uav[1], stage 0
-[INFO]	[UAV 1] initialized with tempId=UAV_1, hashMode=sha3
-Initializing module UAVAuthNetwork.uav[2], stage 0
-[INFO]	[UAV 2] initialized with tempId=UAV_2, hashMode=sha3
-Initializing module UAVAuthNetwork.uav[3], stage 0
-[INFO]	[UAV 3] initialized with tempId=UAV_3, hashMode=sha3
-Initializing module UAVAuthNetwork.uav[4], stage 0
-[INFO]	[UAV 4] initialized with tempId=UAV_4, hashMode=sha3
-Initializing module UAVAuthNetwork.uav[5], stage 0
-[INFO]	[UAV 5] initialized with tempId=UAV_5, hashMode=sha3
-Initializing module UAVAuthNetwork.uav[6], stage 0
-[INFO]	[UAV 6] initialized with tempId=UAV_6, hashMode=sha3
-Initializing module UAVAuthNetwork.uav[7], stage 0
-[INFO]	[UAV 7] initialized with tempId=UAV_7, hashMode=sha3
-Initializing module UAVAuthNetwork.uav[8], stage 0
-[INFO]	[UAV 8] initialized with tempId=UAV_8, hashMode=sha3
-Initializing module UAVAuthNetwork.uav[9], stage 0
-[INFO]	[UAV 9] initialized with tempId=UAV_9, hashMode=sha3
 
 Running simulation...
-** Event #1  t=1  on phase2Start (omnetpp::cMessage)  in UAVAuthNetwork.uav[0] (UAVNode, id=4)    0% completed  (0% total)
-[INFO]	[UAV 0] Phase 2 request sent
-** Event #2  t=1.00018278191  on AuthRequest (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.groundStation (GroundStation, id=3)    0% completed  (0% total)
-** Event #3  t=1.000367436235  on ChallengeIssuance (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[0] (UAVNode, id=4)    0% completed  (0% total)
-[INFO]	[UAV 0] sent masked PUF response
-** Event #4  t=1.00054726542  on PUFResponse (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.groundStation (GroundStation, id=3)    0% completed  (0% total)
-** Event #5  t=1.000679982777  on AuthConfirmation (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[0] (UAVNode, id=4)    0% completed  (0% total)
-[INFO]	[UAV 0] Phase 2 authenticated, latency=0.694024 ms
-** Event #6  t=1.5  on phase2Start (omnetpp::cMessage)  in UAVAuthNetwork.uav[1] (UAVNode, id=5)    1% completed  (1% total)
-[INFO]	[UAV 1] Phase 2 request sent
-** Event #7  t=1.500199690987  on AuthRequest (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.groundStation (GroundStation, id=3)    1% completed  (1% total)
-** Event #8  t=1.500381486578  on ChallengeIssuance (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[1] (UAVNode, id=5)    1% completed  (1% total)
-[INFO]	[UAV 1] sent masked PUF response
-** Event #9  t=1.500541903533  on PUFResponse (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.groundStation (GroundStation, id=3)    1% completed  (1% total)
-** Event #10  t=1.500674320488  on AuthConfirmation (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[1] (UAVNode, id=5)    1% completed  (1% total)
-[INFO]	[UAV 1] Phase 2 authenticated, latency=0.682653 ms
-** Event #11  t=2  on phase2Start (omnetpp::cMessage)  in UAVAuthNetwork.uav[2] (UAVNode, id=6)    1% completed  (1% total)
-[INFO]	[UAV 2] Phase 2 request sent
-** Event #12  t=2.000160717357  on AuthRequest (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.groundStation (GroundStation, id=3)    1% completed  (1% total)
-** Event #13  t=2.000342768047  on ChallengeIssuance (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[2] (UAVNode, id=6)    1% completed  (1% total)
-[INFO]	[UAV 2] sent masked PUF response
-** Event #14  t=2.000503485404  on PUFResponse (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.groundStation (GroundStation, id=3)    1% completed  (1% total)
-** Event #15  t=2.000645053873  on AuthConfirmation (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[2] (UAVNode, id=6)    1% completed  (1% total)
-[INFO]	[UAV 2] Phase 2 authenticated, latency=0.653333 ms
-** Event #16  t=2.5  on phase2Start (omnetpp::cMessage)  in UAVAuthNetwork.uav[3] (UAVNode, id=7)    2% completed  (2% total)
-[INFO]	[UAV 3] Phase 2 request sent
-** Event #17  t=2.500160717357  on AuthRequest (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.groundStation (GroundStation, id=3)    2% completed  (2% total)
-** Event #18  t=2.500350583821  on ChallengeIssuance (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[3] (UAVNode, id=7)    2% completed  (2% total)
-[INFO]	[UAV 3] sent masked PUF response
-** Event #19  t=2.500534007157  on PUFResponse (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.groundStation (GroundStation, id=3)    2% completed  (2% total)
-** Event #20  t=2.500666724514  on AuthConfirmation (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[3] (UAVNode, id=7)    2% completed  (2% total)
-[INFO]	[UAV 3] Phase 2 authenticated, latency=0.674164 ms
-** Event #21  t=3  on phase2Start (omnetpp::cMessage)  in UAVAuthNetwork.uav[4] (UAVNode, id=8)    2% completed  (2% total)
-[INFO]	[UAV 4] Phase 2 request sent
-** Event #22  t=3.000160416955  on AuthRequest (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.groundStation (GroundStation, id=3)    2% completed  (2% total)
-** Event #23  t=3.000342167243  on ChallengeIssuance (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[4] (UAVNode, id=8)    2% completed  (2% total)
-[INFO]	[UAV 4] sent masked PUF response
-** Event #24  t=3.000513621458  on PUFResponse (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.groundStation (GroundStation, id=3)    2% completed  (2% total)
-** Event #25  t=3.000646038413  on AuthConfirmation (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[4] (UAVNode, id=8)    2% completed  (2% total)
-[INFO]	[UAV 4] Phase 2 authenticated, latency=0.654203 ms
-** Event #26  t=3.5  on phase2Start (omnetpp::cMessage)  in UAVAuthNetwork.uav[5] (UAVNode, id=9)    2% completed  (2% total)
-[INFO]	[UAV 5] Phase 2 request sent
-** Event #27  t=3.500201071839  on AuthRequest (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.groundStation (GroundStation, id=3)    2% completed  (2% total)
-** Event #28  t=3.500383122529  on ChallengeIssuance (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[5] (UAVNode, id=9)    2% completed  (2% total)
-[INFO]	[UAV 5] sent masked PUF response
-** Event #29  t=3.500543839886  on PUFResponse (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.groundStation (GroundStation, id=3)    2% completed  (2% total)
-** Event #30  t=3.500676557243  on AuthConfirmation (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[5] (UAVNode, id=9)    2% completed  (2% total)
-[INFO]	[UAV 5] Phase 2 authenticated, latency=0.684173 ms
-** Event #31  t=4  on phase2Start (omnetpp::cMessage)  in UAVAuthNetwork.uav[6] (UAVNode, id=10)    3% completed  (3% total)
-[INFO]	[UAV 6] Phase 2 request sent
-** Event #32  t=4.000160772617  on AuthRequest (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.groundStation (GroundStation, id=3)    3% completed  (3% total)
-** Event #33  t=4.000342878567  on ChallengeIssuance (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[6] (UAVNode, id=10)    3% completed  (3% total)
-[INFO]	[UAV 6] sent masked PUF response
-** Event #34  t=4.000503651184  on PUFResponse (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.groundStation (GroundStation, id=3)    3% completed  (3% total)
-** Event #35  t=4.000676287692  on AuthConfirmation (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[6] (UAVNode, id=10)    3% completed  (3% total)
-[INFO]	[UAV 6] Phase 2 authenticated, latency=0.684224 ms
-** Event #36  t=4.5  on phase2Start (omnetpp::cMessage)  in UAVAuthNetwork.uav[7] (UAVNode, id=11)    3% completed  (3% total)
-[INFO]	[UAV 7] Phase 2 request sent
-** Event #37  t=4.500180780931  on AuthRequest (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.groundStation (GroundStation, id=3)    3% completed  (3% total)
-** Event #38  t=4.50038062884  on ChallengeIssuance (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[7] (UAVNode, id=11)    3% completed  (3% total)
-[INFO]	[UAV 7] sent masked PUF response
-** Event #39  t=4.500541401457  on PUFResponse (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.groundStation (GroundStation, id=3)    3% completed  (3% total)
-** Event #40  t=4.500674174074  on AuthConfirmation (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[7] (UAVNode, id=11)    3% completed  (3% total)
-[INFO]	[UAV 7] Phase 2 authenticated, latency=0.682273 ms
-** Event #41  t=5  on phase2Start (omnetpp::cMessage)  in UAVAuthNetwork.uav[8] (UAVNode, id=12)    4% completed  (4% total)
-[INFO]	[UAV 8] Phase 2 request sent
-** Event #42  t=5.000160772617  on AuthRequest (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.groundStation (GroundStation, id=3)    4% completed  (4% total)
-** Event #43  t=5.000343020219  on ChallengeIssuance (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[8] (UAVNode, id=12)    4% completed  (4% total)
-[INFO]	[UAV 8] sent masked PUF response
-** Event #44  t=5.000535360633  on PUFResponse (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.groundStation (GroundStation, id=3)    4% completed  (4% total)
-** Event #45  t=5.00066813325  on AuthConfirmation (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[8] (UAVNode, id=12)    4% completed  (4% total)
-[INFO]	[UAV 8] Phase 2 authenticated, latency=0.676143 ms
-** Event #46  t=5.5  on phase2Start (omnetpp::cMessage)  in UAVAuthNetwork.uav[9] (UAVNode, id=13)    4% completed  (4% total)
-[INFO]	[UAV 9] Phase 2 request sent
-** Event #47  t=5.500167258186  on AuthRequest (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.groundStation (GroundStation, id=3)    4% completed  (4% total)
-** Event #48  t=5.500349364136  on ChallengeIssuance (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[9] (UAVNode, id=13)    4% completed  (4% total)
-[INFO]	[UAV 9] sent masked PUF response
-** Event #49  t=5.500510136753  on PUFResponse (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.groundStation (GroundStation, id=3)    4% completed  (4% total)
-** Event #50  t=5.50064290937  on AuthConfirmation (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[9] (UAVNode, id=13)    4% completed  (4% total)
-[INFO]	[UAV 9] Phase 2 authenticated, latency=0.650273 ms
-** Event #51  t=11.000679982777  on phase3Start (omnetpp::cMessage)  in UAVAuthNetwork.uav[0] (UAVNode, id=4)    9% completed  (9% total)
-[INFO]	[UAV 0] Phase 3 request sent to UAV 1
-[INFO]	[UAV 0] Phase 3 request sent to UAV 2
-[INFO]	[UAV 0] Phase 3 request sent to UAV 3
-[INFO]	[UAV 0] Phase 3 request sent to UAV 4
-[INFO]	[UAV 0] Phase 3 request sent to UAV 5
-[INFO]	[UAV 0] Phase 3 request sent to UAV 6
-[INFO]	[UAV 0] Phase 3 request sent to UAV 7
-[INFO]	[UAV 0] Phase 3 request sent to UAV 8
-[INFO]	[UAV 0] Phase 3 request sent to UAV 9
-** Event #52  t=11.000833899847  on PeerAuthRequest (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[1] (UAVNode, id=5)    9% completed  (9% total)
-[INFO]	[UAV 1] Phase 3 response sent to UAV 0
-** Event #53  t=11.000834150021  on PeerAuthRequest (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[3] (UAVNode, id=7)    9% completed  (9% total)
-[INFO]	[UAV 3] Phase 3 response sent to UAV 0
-** Event #54  t=11.000834334028  on PeerAuthRequest (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[4] (UAVNode, id=8)    9% completed  (9% total)
-[INFO]	[UAV 4] Phase 3 response sent to UAV 0
-** Event #55  t=11.000834779237  on PeerAuthRequest (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[9] (UAVNode, id=13)    9% completed  (9% total)
-[INFO]	[UAV 9] Phase 3 response sent to UAV 0
-** Event #56  t=11.000837523103  on PeerAuthRequest (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[7] (UAVNode, id=11)    9% completed  (9% total)
-[INFO]	[UAV 7] Phase 3 response sent to UAV 0
-** Event #57  t=11.000837841985  on PeerAuthRequest (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[2] (UAVNode, id=6)    9% completed  (9% total)
-[INFO]	[UAV 2] Phase 3 response sent to UAV 0
-** Event #58  t=11.000843538845  on PeerAuthRequest (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[5] (UAVNode, id=9)    9% completed  (9% total)
-[INFO]	[UAV 5] Phase 3 response sent to UAV 0
-** Event #59  t=11.000847993732  on PeerAuthRequest (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[8] (UAVNode, id=12)    9% completed  (9% total)
-[INFO]	[UAV 8] Phase 3 response sent to UAV 0
-** Event #60  t=11.000879591119  on PeerAuthRequest (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[6] (UAVNode, id=10)    9% completed  (9% total)
-[INFO]	[UAV 6] Phase 3 response sent to UAV 0
-** Event #61  t=11.000989575697  on PeerAuthResponse (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[0] (UAVNode, id=4)    9% completed  (9% total)
-[INFO]	[UAV 0] Phase 3 complete with UAV 9
-** Event #62  t=11.000991479585  on PeerAuthResponse (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[0] (UAVNode, id=4)    9% completed  (9% total)
-[INFO]	[UAV 0] Phase 3 complete with UAV 7
-** Event #63  t=11.000992342793  on PeerAuthResponse (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[0] (UAVNode, id=4)    9% completed  (9% total)
-[INFO]	[UAV 0] Phase 3 complete with UAV 2
-** Event #64  t=11.001000128497  on PeerAuthResponse (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[0] (UAVNode, id=4)    9% completed  (9% total)
-[INFO]	[UAV 0] Phase 3 complete with UAV 1
-** Event #65  t=11.001000930695  on PeerAuthResponse (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[0] (UAVNode, id=4)    9% completed  (9% total)
-[INFO]	[UAV 0] Phase 3 complete with UAV 4
-** Event #66  t=11.001011124359  on PeerAuthResponse (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[0] (UAVNode, id=4)    9% completed  (9% total)
-[INFO]	[UAV 0] Phase 3 complete with UAV 5
-** Event #67  t=11.001020357749  on PeerAuthResponse (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[0] (UAVNode, id=4)    9% completed  (9% total)
-[INFO]	[UAV 0] Phase 3 complete with UAV 3
-** Event #68  t=11.001023645403  on PeerAuthResponse (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[0] (UAVNode, id=4)    9% completed  (9% total)
-[INFO]	[UAV 0] Phase 3 complete with UAV 8
-** Event #69  t=11.001033211395  on PeerAuthResponse (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[0] (UAVNode, id=4)    9% completed  (9% total)
-[INFO]	[UAV 0] Phase 3 complete with UAV 6
-** Event #70  t=11.001124102734  on PeerAuthComplete (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[7] (UAVNode, id=11)    9% completed  (9% total)
-[INFO]	[UAV 7] peer session established with UAV 0
-** Event #71  t=11.001127086645  on PeerAuthComplete (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[2] (UAVNode, id=6)    9% completed  (9% total)
-[INFO]	[UAV 2] peer session established with UAV 0
-** Event #72  t=11.001133948612  on PeerAuthComplete (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[4] (UAVNode, id=8)    9% completed  (9% total)
-[INFO]	[UAV 4] peer session established with UAV 0
-** Event #73  t=11.001144521956  on PeerAuthComplete (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[1] (UAVNode, id=5)    9% completed  (9% total)
-[INFO]	[UAV 1] peer session established with UAV 0
-** Event #74  t=11.001149994256  on PeerAuthComplete (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[5] (UAVNode, id=9)    9% completed  (9% total)
-[INFO]	[UAV 5] peer session established with UAV 0
-** Event #75  t=11.001153191659  on PeerAuthComplete (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[3] (UAVNode, id=7)    9% completed  (9% total)
-[INFO]	[UAV 3] peer session established with UAV 0
-** Event #76  t=11.001156184316  on PeerAuthComplete (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[9] (UAVNode, id=13)    9% completed  (9% total)
-[INFO]	[UAV 9] peer session established with UAV 0
-** Event #77  t=11.001165498338  on PeerAuthComplete (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[6] (UAVNode, id=10)    9% completed  (9% total)
-[INFO]	[UAV 6] peer session established with UAV 0
-** Event #78  t=11.001182620536  on PeerAuthComplete (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[8] (UAVNode, id=12)    9% completed  (9% total)
-[INFO]	[UAV 8] peer session established with UAV 0
-** Event #79  t=12.000674320488  on phase3Start (omnetpp::cMessage)  in UAVAuthNetwork.uav[1] (UAVNode, id=5)    10% completed  (10% total)
-[INFO]	[UAV 1] Phase 3 request sent to UAV 2
-[INFO]	[UAV 1] Phase 3 request sent to UAV 3
-[INFO]	[UAV 1] Phase 3 request sent to UAV 4
-[INFO]	[UAV 1] Phase 3 request sent to UAV 5
-[INFO]	[UAV 1] Phase 3 request sent to UAV 6
-[INFO]	[UAV 1] Phase 3 request sent to UAV 7
-[INFO]	[UAV 1] Phase 3 request sent to UAV 8
-[INFO]	[UAV 1] Phase 3 request sent to UAV 9
-** Event #80  t=12.000828439823  on PeerAuthRequest (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[6] (UAVNode, id=10)    10% completed  (10% total)
-[INFO]	[UAV 6] Phase 3 response sent to UAV 1
-** Event #81  t=12.000828439823  on PeerAuthRequest (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[8] (UAVNode, id=12)    10% completed  (10% total)
-[INFO]	[UAV 8] Phase 3 response sent to UAV 1
-** Event #82  t=12.000828671739  on PeerAuthRequest (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[3] (UAVNode, id=7)    10% completed  (10% total)
-[INFO]	[UAV 3] Phase 3 response sent to UAV 1
-** Event #83  t=12.000828671739  on PeerAuthRequest (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[5] (UAVNode, id=9)    10% completed  (10% total)
-[INFO]	[UAV 5] Phase 3 response sent to UAV 1
-** Event #84  t=12.000829659764  on PeerAuthRequest (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[4] (UAVNode, id=8)    10% completed  (10% total)
-[INFO]	[UAV 4] Phase 3 response sent to UAV 1
-** Event #85  t=12.000830677642  on PeerAuthRequest (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[9] (UAVNode, id=13)    10% completed  (10% total)
-[INFO]	[UAV 9] Phase 3 response sent to UAV 1
-** Event #86  t=12.000843282707  on PeerAuthRequest (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[7] (UAVNode, id=11)    10% completed  (10% total)
-[INFO]	[UAV 7] Phase 3 response sent to UAV 1
-** Event #87  t=12.000847386704  on PeerAuthRequest (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[2] (UAVNode, id=6)    10% completed  (10% total)
-[INFO]	[UAV 2] Phase 3 response sent to UAV 1
-** Event #88  t=12.000982559158  on PeerAuthResponse (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[1] (UAVNode, id=5)    10% completed  (10% total)
-[INFO]	[UAV 1] Phase 3 complete with UAV 6
-** Event #89  t=12.000982559158  on PeerAuthResponse (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[1] (UAVNode, id=5)    10% completed  (10% total)
-[INFO]	[UAV 1] Phase 3 complete with UAV 8
-** Event #90  t=12.00098302299  on PeerAuthResponse (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[1] (UAVNode, id=5)    10% completed  (10% total)
-[INFO]	[UAV 1] Phase 3 complete with UAV 3
-** Event #91  t=12.001001303774  on PeerAuthResponse (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[1] (UAVNode, id=5)    10% completed  (10% total)
-[INFO]	[UAV 1] Phase 3 complete with UAV 2
-** Event #92  t=12.001003839284  on PeerAuthResponse (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[1] (UAVNode, id=5)    10% completed  (10% total)
-[INFO]	[UAV 1] Phase 3 complete with UAV 4
-** Event #93  t=12.001004470687  on PeerAuthResponse (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[1] (UAVNode, id=5)    10% completed  (10% total)
-[INFO]	[UAV 1] Phase 3 complete with UAV 9
-** Event #94  t=12.001022199394  on PeerAuthResponse (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[1] (UAVNode, id=5)    10% completed  (10% total)
-[INFO]	[UAV 1] Phase 3 complete with UAV 7
-** Event #95  t=12.001035064092  on PeerAuthResponse (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[1] (UAVNode, id=5)    10% completed  (10% total)
-[INFO]	[UAV 1] Phase 3 complete with UAV 5
-** Event #96  t=12.00111534516  on PeerAuthComplete (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[8] (UAVNode, id=12)    10% completed  (10% total)
-[INFO]	[UAV 8] peer session established with UAV 1
-** Event #97  t=12.001116040907  on PeerAuthComplete (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[3] (UAVNode, id=7)    10% completed  (10% total)
-[INFO]	[UAV 3] peer session established with UAV 1
-** Event #98  t=12.001133887511  on PeerAuthComplete (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[2] (UAVNode, id=6)    10% completed  (10% total)
-[INFO]	[UAV 2] peer session established with UAV 1
-** Event #99  t=12.00113443044  on PeerAuthComplete (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[6] (UAVNode, id=10)    10% completed  (10% total)
-[INFO]	[UAV 6] peer session established with UAV 1
-** Event #100  t=12.001137431821  on PeerAuthComplete (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[9] (UAVNode, id=13)    10% completed  (10% total)
-[INFO]	[UAV 9] peer session established with UAV 1
-** Event #101  t=12.001148291224  on PeerAuthComplete (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[4] (UAVNode, id=8)    10% completed  (10% total)
-[INFO]	[UAV 4] peer session established with UAV 1
-** Event #102  t=12.001170387167  on PeerAuthComplete (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[7] (UAVNode, id=11)    10% completed  (10% total)
-[INFO]	[UAV 7] peer session established with UAV 1
-** Event #103  t=12.001195948706  on PeerAuthComplete (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[5] (UAVNode, id=9)    10% completed  (10% total)
-[INFO]	[UAV 5] peer session established with UAV 1
-** Event #104  t=13.000645053873  on phase3Start (omnetpp::cMessage)  in UAVAuthNetwork.uav[2] (UAVNode, id=6)    10% completed  (10% total)
-[INFO]	[UAV 2] Phase 3 request sent to UAV 3
-[INFO]	[UAV 2] Phase 3 request sent to UAV 4
-[INFO]	[UAV 2] Phase 3 request sent to UAV 5
-[INFO]	[UAV 2] Phase 3 request sent to UAV 6
-[INFO]	[UAV 2] Phase 3 request sent to UAV 7
-[INFO]	[UAV 2] Phase 3 request sent to UAV 8
-[INFO]	[UAV 2] Phase 3 request sent to UAV 9
-** Event #105  t=13.000798674149  on PeerAuthRequest (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[8] (UAVNode, id=12)    10% completed  (10% total)
-[INFO]	[UAV 8] Phase 3 response sent to UAV 2
-** Event #106  t=13.000799741739  on PeerAuthRequest (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[6] (UAVNode, id=10)    10% completed  (10% total)
-[INFO]	[UAV 6] Phase 3 response sent to UAV 2
-** Event #107  t=13.00079982192  on PeerAuthRequest (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[3] (UAVNode, id=7)    10% completed  (10% total)
-[INFO]	[UAV 3] Phase 3 response sent to UAV 2
-** Event #108  t=13.000799850333  on PeerAuthRequest (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[7] (UAVNode, id=11)    10% completed  (10% total)
-[INFO]	[UAV 7] Phase 3 response sent to UAV 2
-** Event #109  t=13.000829683071  on PeerAuthRequest (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[5] (UAVNode, id=9)    10% completed  (10% total)
-[INFO]	[UAV 5] Phase 3 response sent to UAV 2
-** Event #110  t=13.000830358303  on PeerAuthRequest (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[4] (UAVNode, id=8)    10% completed  (10% total)
-[INFO]	[UAV 4] Phase 3 response sent to UAV 2
-** Event #111  t=13.000869401039  on PeerAuthRequest (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[9] (UAVNode, id=13)    10% completed  (10% total)
-[INFO]	[UAV 9] Phase 3 response sent to UAV 2
-** Event #112  t=13.000952294425  on PeerAuthResponse (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[2] (UAVNode, id=6)    10% completed  (10% total)
-[INFO]	[UAV 2] Phase 3 complete with UAV 8
-** Event #113  t=13.000954429605  on PeerAuthResponse (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[2] (UAVNode, id=6)    10% completed  (10% total)
-[INFO]	[UAV 2] Phase 3 complete with UAV 6
-** Event #114  t=13.000954589967  on PeerAuthResponse (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[2] (UAVNode, id=6)    10% completed  (10% total)
-[INFO]	[UAV 2] Phase 3 complete with UAV 3
-** Event #115  t=13.000964331292  on PeerAuthResponse (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[2] (UAVNode, id=6)    10% completed  (10% total)
-[INFO]	[UAV 2] Phase 3 complete with UAV 7
-** Event #116  t=13.00099234139  on PeerAuthResponse (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[2] (UAVNode, id=6)    10% completed  (10% total)
-[INFO]	[UAV 2] Phase 3 complete with UAV 4
-** Event #117  t=13.00102058766  on PeerAuthResponse (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[2] (UAVNode, id=6)    10% completed  (10% total)
-[INFO]	[UAV 2] Phase 3 complete with UAV 5
-** Event #118  t=13.001023357521  on PeerAuthResponse (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[2] (UAVNode, id=6)    10% completed  (10% total)
-[INFO]	[UAV 2] Phase 3 complete with UAV 9
-** Event #119  t=13.001097794418  on PeerAuthComplete (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[7] (UAVNode, id=11)    10% completed  (10% total)
-[INFO]	[UAV 7] peer session established with UAV 2
-** Event #120  t=13.001104774985  on PeerAuthComplete (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[6] (UAVNode, id=10)    10% completed  (10% total)
-[INFO]	[UAV 6] peer session established with UAV 2
-** Event #121  t=13.001125359307  on PeerAuthComplete (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[4] (UAVNode, id=8)    10% completed  (10% total)
-[INFO]	[UAV 4] peer session established with UAV 2
-** Event #122  t=13.001126260735  on PeerAuthComplete (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[3] (UAVNode, id=7)    10% completed  (10% total)
-[INFO]	[UAV 3] peer session established with UAV 2
-** Event #123  t=13.001139331627  on PeerAuthComplete (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[8] (UAVNode, id=12)    10% completed  (10% total)
-[INFO]	[UAV 8] peer session established with UAV 2
-** Event #124  t=13.001155302329  on PeerAuthComplete (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[5] (UAVNode, id=9)    10% completed  (10% total)
-[INFO]	[UAV 5] peer session established with UAV 2
-** Event #125  t=13.001174823003  on PeerAuthComplete (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[9] (UAVNode, id=13)    10% completed  (10% total)
-[INFO]	[UAV 9] peer session established with UAV 2
-** Event #126  t=14.000666724514  on phase3Start (omnetpp::cMessage)  in UAVAuthNetwork.uav[3] (UAVNode, id=7)    11% completed  (11% total)
-[INFO]	[UAV 3] Phase 3 request sent to UAV 4
-[INFO]	[UAV 3] Phase 3 request sent to UAV 5
-[INFO]	[UAV 3] Phase 3 request sent to UAV 6
-[INFO]	[UAV 3] Phase 3 request sent to UAV 7
-[INFO]	[UAV 3] Phase 3 request sent to UAV 8
-[INFO]	[UAV 3] Phase 3 request sent to UAV 9
-** Event #127  t=14.00082034479  on PeerAuthRequest (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[7] (UAVNode, id=11)    11% completed  (11% total)
-[INFO]	[UAV 7] Phase 3 response sent to UAV 3
-** Event #128  t=14.000821225322  on PeerAuthRequest (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[5] (UAVNode, id=9)    11% completed  (11% total)
-[INFO]	[UAV 5] Phase 3 response sent to UAV 3
-** Event #129  t=14.00082141238  on PeerAuthRequest (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[9] (UAVNode, id=13)    11% completed  (11% total)
-[INFO]	[UAV 9] Phase 3 response sent to UAV 3
-** Event #130  t=14.000832710567  on PeerAuthRequest (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[8] (UAVNode, id=12)    11% completed  (11% total)
-[INFO]	[UAV 8] Phase 3 response sent to UAV 3
-** Event #131  t=14.000843527799  on PeerAuthRequest (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[6] (UAVNode, id=10)    11% completed  (11% total)
-[INFO]	[UAV 6] Phase 3 response sent to UAV 3
-** Event #132  t=14.000852526311  on PeerAuthRequest (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[4] (UAVNode, id=8)    11% completed  (11% total)
-[INFO]	[UAV 4] Phase 3 response sent to UAV 3
-** Event #133  t=14.000973965066  on PeerAuthResponse (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[3] (UAVNode, id=7)    11% completed  (11% total)
-[INFO]	[UAV 3] Phase 3 complete with UAV 7
-** Event #134  t=14.000990286604  on PeerAuthResponse (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[3] (UAVNode, id=7)    11% completed  (11% total)
-[INFO]	[UAV 3] Phase 3 complete with UAV 5
-** Event #135  t=14.001003854631  on PeerAuthResponse (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[3] (UAVNode, id=7)    11% completed  (11% total)
-[INFO]	[UAV 3] Phase 3 complete with UAV 6
-** Event #136  t=14.001006443381  on PeerAuthResponse (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[3] (UAVNode, id=7)    11% completed  (11% total)
-[INFO]	[UAV 3] Phase 3 complete with UAV 4
-** Event #137  t=14.001017001394  on PeerAuthResponse (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[3] (UAVNode, id=7)    11% completed  (11% total)
-[INFO]	[UAV 3] Phase 3 complete with UAV 9
-** Event #138  t=14.001027610844  on PeerAuthResponse (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[3] (UAVNode, id=7)    11% completed  (11% total)
-[INFO]	[UAV 3] Phase 3 complete with UAV 8
-** Event #139  t=14.001106252009  on PeerAuthComplete (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[7] (UAVNode, id=11)    11% completed  (11% total)
-[INFO]	[UAV 7] peer session established with UAV 3
-** Event #140  t=14.001123454078  on PeerAuthComplete (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[5] (UAVNode, id=9)    11% completed  (11% total)
-[INFO]	[UAV 5] peer session established with UAV 3
-** Event #141  t=14.00114404743  on PeerAuthComplete (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[6] (UAVNode, id=10)    11% completed  (11% total)
-[INFO]	[UAV 6] peer session established with UAV 3
-** Event #142  t=14.001145459878  on PeerAuthComplete (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[4] (UAVNode, id=8)    11% completed  (11% total)
-[INFO]	[UAV 4] peer session established with UAV 3
-** Event #143  t=14.001150355927  on PeerAuthComplete (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[9] (UAVNode, id=13)    11% completed  (11% total)
-[INFO]	[UAV 9] peer session established with UAV 3
-** Event #144  t=14.00116107397  on PeerAuthComplete (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[8] (UAVNode, id=12)    11% completed  (11% total)
-[INFO]	[UAV 8] peer session established with UAV 3
-** Event #145  t=15  on controllerReport (omnetpp::cMessage)  in UAVAuthNetwork.controller (NetworkController, id=2)    12% completed  (12% total)
-[INFO]	[Controller] simTime=15 numUAVs=10
-** Event #146  t=15.000646038413  on phase3Start (omnetpp::cMessage)  in UAVAuthNetwork.uav[4] (UAVNode, id=8)    12% completed  (12% total)
-[INFO]	[UAV 4] Phase 3 request sent to UAV 5
-[INFO]	[UAV 4] Phase 3 request sent to UAV 6
-[INFO]	[UAV 4] Phase 3 request sent to UAV 7
-[INFO]	[UAV 4] Phase 3 request sent to UAV 8
-[INFO]	[UAV 4] Phase 3 request sent to UAV 9
-** Event #147  t=15.000799955483  on PeerAuthRequest (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[5] (UAVNode, id=9)    12% completed  (12% total)
-[INFO]	[UAV 5] Phase 3 response sent to UAV 4
-** Event #148  t=15.000800157748  on PeerAuthRequest (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[7] (UAVNode, id=11)    12% completed  (12% total)
-[INFO]	[UAV 7] Phase 3 response sent to UAV 4
-** Event #149  t=15.000800157748  on PeerAuthRequest (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[9] (UAVNode, id=13)    12% completed  (12% total)
-[INFO]	[UAV 9] Phase 3 response sent to UAV 4
-** Event #150  t=15.00080033288  on PeerAuthRequest (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[6] (UAVNode, id=10)    12% completed  (12% total)
-[INFO]	[UAV 6] Phase 3 response sent to UAV 4
-** Event #151  t=15.00080033288  on PeerAuthRequest (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[8] (UAVNode, id=12)    12% completed  (12% total)
-[INFO]	[UAV 8] Phase 3 response sent to UAV 4
-** Event #152  t=15.000953872553  on PeerAuthResponse (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[4] (UAVNode, id=8)    12% completed  (12% total)
-[INFO]	[UAV 4] Phase 3 complete with UAV 5
-** Event #153  t=15.000954277083  on PeerAuthResponse (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[4] (UAVNode, id=8)    12% completed  (12% total)
-[INFO]	[UAV 4] Phase 3 complete with UAV 7
-** Event #154  t=15.000956197194  on PeerAuthResponse (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[4] (UAVNode, id=8)    12% completed  (12% total)
-[INFO]	[UAV 4] Phase 3 complete with UAV 8
-** Event #155  t=15.000957776857  on PeerAuthResponse (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[4] (UAVNode, id=8)    12% completed  (12% total)
-[INFO]	[UAV 4] Phase 3 complete with UAV 6
-** Event #156  t=15.000977004688  on PeerAuthResponse (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[4] (UAVNode, id=8)    12% completed  (12% total)
-[INFO]	[UAV 4] Phase 3 complete with UAV 9
-** Event #157  t=15.00108645629  on PeerAuthComplete (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[5] (UAVNode, id=9)    12% completed  (12% total)
-[INFO]	[UAV 5] peer session established with UAV 4
-** Event #158  t=15.001087063085  on PeerAuthComplete (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[7] (UAVNode, id=11)    12% completed  (12% total)
-[INFO]	[UAV 7] peer session established with UAV 4
-** Event #159  t=15.001089158328  on PeerAuthComplete (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[8] (UAVNode, id=12)    12% completed  (12% total)
-[INFO]	[UAV 8] peer session established with UAV 4
-** Event #160  t=15.001097239052  on PeerAuthComplete (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[6] (UAVNode, id=10)    12% completed  (12% total)
-[INFO]	[UAV 6] peer session established with UAV 4
-** Event #161  t=15.00111475646  on PeerAuthComplete (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[9] (UAVNode, id=13)    12% completed  (12% total)
-[INFO]	[UAV 9] peer session established with UAV 4
-** Event #162  t=16.000676557243  on phase3Start (omnetpp::cMessage)  in UAVAuthNetwork.uav[5] (UAVNode, id=9)    13% completed  (13% total)
-[INFO]	[UAV 5] Phase 3 request sent to UAV 6
-[INFO]	[UAV 5] Phase 3 request sent to UAV 7
-[INFO]	[UAV 5] Phase 3 request sent to UAV 8
-[INFO]	[UAV 5] Phase 3 request sent to UAV 9
-** Event #163  t=16.000830177519  on PeerAuthRequest (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[9] (UAVNode, id=13)    13% completed  (13% total)
-[INFO]	[UAV 9] Phase 3 response sent to UAV 5
-** Event #164  t=16.000830513725  on PeerAuthRequest (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[8] (UAVNode, id=12)    13% completed  (13% total)
-[INFO]	[UAV 8] Phase 3 response sent to UAV 5
-** Event #165  t=16.000831245109  on PeerAuthRequest (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[7] (UAVNode, id=11)    13% completed  (13% total)
-[INFO]	[UAV 7] Phase 3 response sent to UAV 5
-** Event #166  t=16.000833078494  on PeerAuthRequest (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[6] (UAVNode, id=10)    13% completed  (13% total)
-[INFO]	[UAV 6] Phase 3 response sent to UAV 5
-** Event #167  t=16.000984470207  on PeerAuthResponse (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[5] (UAVNode, id=9)    13% completed  (13% total)
-[INFO]	[UAV 5] Phase 3 complete with UAV 8
-** Event #168  t=16.000987874954  on PeerAuthResponse (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[5] (UAVNode, id=9)    13% completed  (13% total)
-[INFO]	[UAV 5] Phase 3 complete with UAV 6
-** Event #169  t=16.000997362874  on PeerAuthResponse (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[5] (UAVNode, id=9)    13% completed  (13% total)
-[INFO]	[UAV 5] Phase 3 complete with UAV 7
-** Event #170  t=16.001000151306  on PeerAuthResponse (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[5] (UAVNode, id=9)    13% completed  (13% total)
-[INFO]	[UAV 5] Phase 3 complete with UAV 9
-** Event #171  t=16.001117093356  on PeerAuthComplete (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[8] (UAVNode, id=12)    13% completed  (13% total)
-[INFO]	[UAV 8] peer session established with UAV 5
-** Event #172  t=16.001130243004  on PeerAuthComplete (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[6] (UAVNode, id=10)    13% completed  (13% total)
-[INFO]	[UAV 6] peer session established with UAV 5
-** Event #173  t=16.001130717407  on PeerAuthComplete (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[7] (UAVNode, id=11)    13% completed  (13% total)
-[INFO]	[UAV 7] peer session established with UAV 5
-** Event #174  t=16.001132438249  on PeerAuthComplete (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[9] (UAVNode, id=13)    13% completed  (13% total)
-[INFO]	[UAV 9] peer session established with UAV 5
-** Event #175  t=17.000676287692  on phase3Start (omnetpp::cMessage)  in UAVAuthNetwork.uav[6] (UAVNode, id=10)    14% completed  (14% total)
-[INFO]	[UAV 6] Phase 3 request sent to UAV 7
-[INFO]	[UAV 6] Phase 3 request sent to UAV 8
-[INFO]	[UAV 6] Phase 3 request sent to UAV 9
-** Event #176  t=17.000829987946  on PeerAuthRequest (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[7] (UAVNode, id=11)    14% completed  (14% total)
-[INFO]	[UAV 7] Phase 3 response sent to UAV 6
-** Event #177  t=17.000831122064  on PeerAuthRequest (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[8] (UAVNode, id=12)    14% completed  (14% total)
-[INFO]	[UAV 8] Phase 3 response sent to UAV 6
-** Event #178  t=17.000839038752  on PeerAuthRequest (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[9] (UAVNode, id=13)    14% completed  (14% total)
-[INFO]	[UAV 9] Phase 3 response sent to UAV 6
-** Event #179  t=17.0009836882  on PeerAuthResponse (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[6] (UAVNode, id=10)    14% completed  (14% total)
-[INFO]	[UAV 6] Phase 3 complete with UAV 7
-** Event #180  t=17.000992639205  on PeerAuthResponse (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[6] (UAVNode, id=10)    14% completed  (14% total)
-[INFO]	[UAV 6] Phase 3 complete with UAV 8
-** Event #181  t=17.000993917319  on PeerAuthResponse (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[6] (UAVNode, id=10)    14% completed  (14% total)
-[INFO]	[UAV 6] Phase 3 complete with UAV 9
-** Event #182  t=17.001127638888  on PeerAuthComplete (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[9] (UAVNode, id=13)    14% completed  (14% total)
-[INFO]	[UAV 9] peer session established with UAV 6
-** Event #183  t=17.001133892921  on PeerAuthComplete (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[7] (UAVNode, id=11)    14% completed  (14% total)
-[INFO]	[UAV 7] peer session established with UAV 6
-** Event #184  t=17.001144231798  on PeerAuthComplete (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[8] (UAVNode, id=12)    14% completed  (14% total)
-[INFO]	[UAV 8] peer session established with UAV 6
-** Event #185  t=18.000674174074  on phase3Start (omnetpp::cMessage)  in UAVAuthNetwork.uav[7] (UAVNode, id=11)    15% completed  (15% total)
-[INFO]	[UAV 7] Phase 3 request sent to UAV 8
-[INFO]	[UAV 7] Phase 3 request sent to UAV 9
-** Event #186  t=18.000829008446  on PeerAuthRequest (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[9] (UAVNode, id=13)    15% completed  (15% total)
-[INFO]	[UAV 9] Phase 3 response sent to UAV 7
-** Event #187  t=18.000852241951  on PeerAuthRequest (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[8] (UAVNode, id=12)    15% completed  (15% total)
-[INFO]	[UAV 8] Phase 3 response sent to UAV 7
-** Event #188  t=18.000983842818  on PeerAuthResponse (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[7] (UAVNode, id=11)    15% completed  (15% total)
-[INFO]	[UAV 7] Phase 3 complete with UAV 9
-** Event #189  t=18.001007120518  on PeerAuthResponse (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[7] (UAVNode, id=11)    15% completed  (15% total)
-[INFO]	[UAV 7] Phase 3 complete with UAV 8
-** Event #190  t=18.001117343856  on PeerAuthComplete (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[9] (UAVNode, id=13)    15% completed  (15% total)
-[INFO]	[UAV 9] peer session established with UAV 7
-** Event #191  t=18.001147279557  on PeerAuthComplete (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[8] (UAVNode, id=12)    15% completed  (15% total)
-[INFO]	[UAV 8] peer session established with UAV 7
-** Event #192  t=19.00066813325  on phase3Start (omnetpp::cMessage)  in UAVAuthNetwork.uav[8] (UAVNode, id=12)    15% completed  (15% total)
-[INFO]	[UAV 8] Phase 3 request sent to UAV 9
-** Event #193  t=19.000821833504  on PeerAuthRequest (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[9] (UAVNode, id=13)    15% completed  (15% total)
-[INFO]	[UAV 9] Phase 3 response sent to UAV 8
-** Event #194  t=19.000975533758  on PeerAuthResponse (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[8] (UAVNode, id=12)    15% completed  (15% total)
-[INFO]	[UAV 8] Phase 3 complete with UAV 9
-** Event #195  t=19.001119723216  on PeerAuthComplete (uavauth::protocols::ProtocolMessage)  in UAVAuthNetwork.uav[9] (UAVNode, id=13)    15% completed  (15% total)
-[INFO]	[UAV 9] peer session established with UAV 8
-** Event #196  t=20.00064290937  on phase3Start (omnetpp::cMessage)  in UAVAuthNetwork.uav[9] (UAVNode, id=13)    16% completed  (16% total)
-** Event #197  t=30  on controllerReport (omnetpp::cMessage)  in UAVAuthNetwork.controller (NetworkController, id=2)    25% completed  (25% total)
-[INFO]	[Controller] simTime=30 numUAVs=10
-** Event #198  t=45  on controllerReport (omnetpp::cMessage)  in UAVAuthNetwork.controller (NetworkController, id=2)    37% completed  (37% total)
-[INFO]	[Controller] simTime=45 numUAVs=10
-** Event #199  t=60  on controllerReport (omnetpp::cMessage)  in UAVAuthNetwork.controller (NetworkController, id=2)    50% completed  (50% total)
-[INFO]	[Controller] simTime=60 numUAVs=10
-** Event #200  t=75  on controllerReport (omnetpp::cMessage)  in UAVAuthNetwork.controller (NetworkController, id=2)    62% completed  (62% total)
-[INFO]	[Controller] simTime=75 numUAVs=10
-** Event #201  t=90  on controllerReport (omnetpp::cMessage)  in UAVAuthNetwork.controller (NetworkController, id=2)    75% completed  (75% total)
-[INFO]	[Controller] simTime=90 numUAVs=10
-** Event #202  t=105  on controllerReport (omnetpp::cMessage)  in UAVAuthNetwork.controller (NetworkController, id=2)    87% completed  (87% total)
-[INFO]	[Controller] simTime=105 numUAVs=10
-** Event #203  t=120  on controllerReport (omnetpp::cMessage)  in UAVAuthNetwork.controller (NetworkController, id=2)    100% completed  (100% total)
-[INFO]	[Controller] simTime=120 numUAVs=10
-** Event #204  t=120  on endsimulation (omnetpp::cEndSimulationEvent)    100% completed  (100% total)
+** Event #0   t=0   Elapsed: 2.1e-05s (0m 00s)  0% completed  (0% total)
+     Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
+     Messages:  created: 10   present: 10   in FES: 11
+** Event #196   t=300   Elapsed: 0.05726s (0m 00s)  100% completed  (12% total)
+     Speed:     ev/sec=3424.06   simsec/sec=524.102   ev/simsec=6.53319
+     Messages:  created: 195   present: 0   in FES: 0
 
-<!> Simulation time limit reached -- at t=120s, event #204
+<!> Simulation time limit reached -- at t=300s, event #196
 
 Calling finish() at end of Run #0...
+
+Preparing for running configuration StadiumSHA3, run #1...
+Assigned runID=StadiumSHA3-1-20260809-23:07:20-359376
+Setting up network "UavAuthNetwork"...
+Initializing...
+
+Running simulation...
+** Event #0   t=0   Elapsed: 1.5e-05s (0m 00s)  0% completed  (12% total)
+     Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
+     Messages:  created: 10   present: 10   in FES: 11
+** Event #196   t=300   Elapsed: 0.054474s (0m 00s)  100% completed  (25% total)
+     Speed:     ev/sec=3599.24   simsec/sec=550.916   ev/simsec=6.53318
+     Messages:  created: 195   present: 0   in FES: 0
+
+<!> Simulation time limit reached -- at t=300s, event #196
+
+Calling finish() at end of Run #1...
+
+Preparing for running configuration StadiumSHA3, run #2...
+Assigned runID=StadiumSHA3-2-20260809-23:07:20-359376
+Setting up network "UavAuthNetwork"...
+Initializing...
+
+Running simulation...
+** Event #0   t=0   Elapsed: 6e-06s (0m 00s)  0% completed  (25% total)
+     Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
+     Messages:  created: 10   present: 10   in FES: 11
+** Event #196   t=300   Elapsed: 0.057466s (0m 00s)  100% completed  (37% total)
+     Speed:     ev/sec=3411.6   simsec/sec=522.196   ev/simsec=6.53319
+     Messages:  created: 195   present: 0   in FES: 0
+
+<!> Simulation time limit reached -- at t=300s, event #196
+
+Calling finish() at end of Run #2...
+
+Preparing for running configuration StadiumSHA3, run #3...
+Assigned runID=StadiumSHA3-3-20260809-23:07:20-359376
+Setting up network "UavAuthNetwork"...
+Initializing...
+
+Running simulation...
+** Event #0   t=0   Elapsed: 7e-06s (0m 00s)  0% completed  (37% total)
+     Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
+     Messages:  created: 10   present: 10   in FES: 11
+** Event #196   t=300   Elapsed: 0.055343s (0m 00s)  100% completed  (50% total)
+     Speed:     ev/sec=3542.32   simsec/sec=542.204   ev/simsec=6.53319
+     Messages:  created: 195   present: 0   in FES: 0
+
+<!> Simulation time limit reached -- at t=300s, event #196
+
+Calling finish() at end of Run #3...
+
+Preparing for running configuration StadiumSHA3, run #4...
+Assigned runID=StadiumSHA3-4-20260809-23:07:20-359376
+Setting up network "UavAuthNetwork"...
+Initializing...
+
+Running simulation...
+** Event #0   t=0   Elapsed: 9e-06s (0m 00s)  0% completed  (50% total)
+     Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
+     Messages:  created: 10   present: 10   in FES: 11
+** Event #196   t=300   Elapsed: 0.05428s (0m 00s)  100% completed  (62% total)
+     Speed:     ev/sec=3611.77   simsec/sec=552.834   ev/simsec=6.53319
+     Messages:  created: 195   present: 0   in FES: 0
+
+<!> Simulation time limit reached -- at t=300s, event #196
+
+Calling finish() at end of Run #4...
+
+Preparing for running configuration StadiumSHA3, run #5...
+Assigned runID=StadiumSHA3-5-20260809-23:07:20-359376
+Setting up network "UavAuthNetwork"...
+Initializing...
+
+Running simulation...
+** Event #0   t=0   Elapsed: 9e-06s (0m 00s)  0% completed  (62% total)
+     Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
+     Messages:  created: 10   present: 10   in FES: 11
+** Event #196   t=300   Elapsed: 0.056197s (0m 00s)  100% completed  (75% total)
+     Speed:     ev/sec=3488.48   simsec/sec=533.962   ev/simsec=6.53319
+     Messages:  created: 195   present: 0   in FES: 0
+
+<!> Simulation time limit reached -- at t=300s, event #196
+
+Calling finish() at end of Run #5...
+
+Preparing for running configuration StadiumSHA3, run #6...
+Assigned runID=StadiumSHA3-6-20260809-23:07:20-359376
+Setting up network "UavAuthNetwork"...
+Initializing...
+
+Running simulation...
+** Event #0   t=0   Elapsed: 7e-06s (0m 00s)  0% completed  (75% total)
+     Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
+     Messages:  created: 10   present: 10   in FES: 11
+** Event #196   t=300   Elapsed: 0.055348s (0m 00s)  100% completed  (87% total)
+     Speed:     ev/sec=3542.13   simsec/sec=542.174   ev/simsec=6.53319
+     Messages:  created: 195   present: 0   in FES: 0
+
+<!> Simulation time limit reached -- at t=300s, event #196
+
+Calling finish() at end of Run #6...
+
+Preparing for running configuration StadiumSHA3, run #7...
+Assigned runID=StadiumSHA3-7-20260809-23:07:20-359376
+Setting up network "UavAuthNetwork"...
+Initializing...
+
+Running simulation...
+** Event #0   t=0   Elapsed: 4e-06s (0m 00s)  0% completed  (87% total)
+     Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
+     Messages:  created: 10   present: 10   in FES: 11
+** Event #196   t=300   Elapsed: 0.054131s (0m 00s)  100% completed  (100% total)
+     Speed:     ev/sec=3621.45   simsec/sec=554.316   ev/simsec=6.53318
+     Messages:  created: 195   present: 0   in FES: 0
+
+<!> Simulation time limit reached -- at t=300s, event #196
+
+Calling finish() at end of Run #7...
+
+Run statistics: total 8, successful 8
 
 End.

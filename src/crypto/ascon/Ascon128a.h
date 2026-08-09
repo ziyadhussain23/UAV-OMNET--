@@ -31,9 +31,9 @@ using core::Bytes;
 ///
 /// tests/test_ascon.cc reproduces every one of the 1089 vectors in
 /// crypto_aead/ascon128av12/LWC_AEAD_KAT_128_128.txt from the designers'
-/// reference repository github.com/ascon/ascon-c (tag v1.2.8): eight vectors are
-/// written out in full, and the remaining ones are covered by a SHA3-256 digest
-/// over the concatenation of all 1089 ciphertexts.
+/// reference repository github.com/ascon/ascon-c (tag v1.2.8): twelve vectors are
+/// written out in full in tests/kat/ascon128a_kat.h, and the whole set is covered
+/// by regenerating every input and hashing the concatenated ciphertexts.
 ///
 /// Not verified: constant-time behaviour. The implementation is branch-free over
 /// secret data and compares tags with CRYPTO_memcmp, but no timing or

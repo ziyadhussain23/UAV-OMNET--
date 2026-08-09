@@ -1,3 +1,4 @@
-config,hash_mode,num_runs,phase2_mean_latency_ms,phase2_mean_compute_ms,phase2_mean_sha3_ms,phase2_mean_spongent_ms,phase2_mean_net_ms,phase2_mean_overhead_bytes,phase3_mean_latency_ms,phase3_mean_compute_ms,phase3_mean_sha3_ms,phase3_mean_spongent_ms,phase3_mean_net_ms,phase3_mean_overhead_bytes,auth_success_rate
-StadiumSHA3,sha3,1,0.673546,0.008946,0.004037,0.0,0.6646,175.0,0.476076,0.009253,0.006325,0.0,0.466822,104.0,1.0
-StadiumSPONGENT,spongent,1,7.456161,6.791561,0.0,6.782181,0.6646,175.0,14.184113,13.717291,0.0,13.711922,0.466822,104.0,1.0
+config,hash_mode,num_runs,phase2_mean_latency_ms,phase2_mean_compute_ms,phase2_mean_net_ms,phase2_mean_overhead_bytes,phase3_mean_latency_ms,phase3_mean_compute_ms,phase3_mean_net_ms,phase3_mean_overhead_bytes,auth_success_rate,device_auth_success_rate,phase2_latency_ci95_lo,phase2_latency_ci95_hi,n_runs
+HighNoise,sha3,8,3.179346,2.349099,0.830248,602.175,0.3568,0.129285,0.262808,172.85159,1.0,0.775,2.678391802,3.680300848,8
+StadiumSHA3,sha3,8,4.154942,3.083562,1.07138,777.0,0.417426,0.164973,0.30662,197.0,1.0,1.0,4.081368679,4.228515671,8
+StadiumSPONGENT,spongent,8,9.673743,8.59703,1.076714,781.0,0.417426,1.870654,0.30662,197.0,1.0,1.0,9.542250195,9.805236505,8

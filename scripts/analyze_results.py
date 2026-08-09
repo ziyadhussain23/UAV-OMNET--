@@ -1,158 +1,131 @@
 #!/usr/bin/env python3
-"""Analyze OMNeT++ results and print delay/compute summaries."""
+"""Summarise the exported CSVs.
 
-import glob
-import os
-from collections import defaultdict
+Reports mean +/- 95% CI with the run as the unit of replication, and refuses to
+print an interval when fewer than three runs exist rather than emitting a
+zero-width one. Success rates carry a Wilson interval, and when there are no
+observed failures the rule-of-three upper bound is shown -- so "10 of 10
+succeeded" reads as "failure probability at most ~26%", not "100% reliable".
+"""
+
+import argparse
 import csv
+import sys
+from pathlib import Path
 
-try:
-    import pandas as pd  # type: ignore
-except ModuleNotFoundError:
-    pd = None
-
-
-def csv_mean(path, column):
-    values = []
-    with open(path, "r", encoding="utf-8") as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            try:
-                values.append(float(row[column]))
-            except (KeyError, ValueError, TypeError):
-                continue
-    return sum(values) / len(values) if values else 0.0
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import stats_util  # noqa: E402
 
 
-def csv_count(path):
-    with open(path, "r", encoding="utf-8") as f:
-        reader = csv.DictReader(f)
-        return sum(1 for _ in reader)
+def load(path):
+    if not path.exists():
+        return []
+    with open(path, newline="") as fh:
+        return list(csv.DictReader(fh))
 
 
-def csv_unique_count(path, column):
-    values = set()
-    with open(path, "r", encoding="utf-8") as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            if column in row:
-                values.add(row[column])
-    return len(values)
-
-
-def parse_scalar_file(path):
-    values = defaultdict(list)
-    with open(path, "r", encoding="utf-8") as f:
-        for line in f:
-            if not line.startswith("scalar "):
-                continue
-
-            # Scalar format: scalar <module> <name> <value>
-            parts = line.strip().split()
-            if len(parts) < 4:
-                continue
-
-            metric_name = parts[2]
-            value = parts[3]
-
-            try:
-                values[metric_name].append(float(value))
-            except ValueError:
-                continue
-
-    return values
-
-
-def summarize(values, key):
-    data = values.get(key, [])
-    if not data:
-        return None
-    return sum(data) / len(data)
+def fmt_ci(stats, unit="", digits=4):
+    if stats is None:
+        return "n/a"
+    m = stats["mean_of_run_means"]
+    if stats.get("ci95_lo", "") == "":
+        return "%.*f %s  (%s)" % (digits, m, unit, stats["ci_method"])
+    half = (stats["ci95_hi"] - stats["ci95_lo"]) / 2.0
+    return "%.*f +/- %.*f %s  (n=%d runs, df=%d)" % (
+        digits, m, digits, half, unit, stats["n_runs"], stats["df"])
 
 
 def main():
-    summary_csv = os.path.join("simulations", "results", "omnet_summary.csv")
-    phase2_csv = os.path.join("simulations", "results", "omnet_phase2_results.csv")
-    phase3_csv = os.path.join("simulations", "results", "omnet_phase3_results.csv")
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--results-dir", default="simulations/results")
+    args = ap.parse_args()
+    d = Path(args.results_dir)
 
-    if os.path.exists(summary_csv) and os.path.exists(phase2_csv) and os.path.exists(phase3_csv):
-        print("=== OMNeT++ Exported CSV Summary ===")
+    p1 = load(d / "omnet_phase1_results.csv")
+    p2 = load(d / "omnet_phase2_results.csv")
+    p3 = load(d / "omnet_phase3_results.csv")
+    rel = load(d / "omnet_reliability.csv")
+    prim = load(d / "omnet_primitive_costs.csv")
 
-        if pd is not None:
-            summary = pd.read_csv(summary_csv)
-            phase2 = pd.read_csv(phase2_csv)
-            phase3 = pd.read_csv(phase3_csv)
+    if not p2 and not p3:
+        print("no exported results found in %s" % d)
+        print("run: python3 scripts/run_experiments.py")
+        return 1
 
-            print(f"Configs analyzed: {len(summary)}")
-            print(f"Phase 2 rows: {len(phase2)}")
-            print(f"Phase 3 rows: {len(phase3)}")
+    configs = sorted({r["config"] for r in p2} | {r["config"] for r in p3})
+    print("=" * 78)
+    print("UAV authentication protocol - results summary")
+    print("=" * 78)
+    print("configs: %d    phase1 rows: %d    phase2 rows: %d    phase3 rows: %d"
+          % (len(configs), len(p1), len(p2), len(p3)))
 
-            print(f"Average Phase 2 latency: {phase2['latency_ms'].mean():.3f} ms")
-            print(f"Average Phase 2 compute: {phase2['compute_ms'].mean():.3f} ms")
-            print(f"Average Phase 2 overhead: {phase2['overhead_bytes'].mean():.3f} bytes")
+    for config in configs:
+        c2 = [r for r in p2 if r["config"] == config]
+        c3 = [r for r in p3 if r["config"] == config]
+        crel = [r for r in rel if r["config"] == config]
+        runs = sorted({r["run_id"] for r in c2} | {r["run_id"] for r in c3})
+        suite = c2[0]["suite"] if c2 else (c3[0]["suite"] if c3 else "?")
 
-            print(f"Average Phase 3 latency: {phase3['latency_ms'].mean():.3f} ms")
-            print(f"Average Phase 3 compute: {phase3['compute_ms'].mean():.3f} ms")
-            print(f"Average Phase 3 overhead: {phase3['overhead_bytes'].mean():.3f} bytes")
+        print("\n" + "-" * 78)
+        print("%s   [suite=%s, runs=%d]" % (config, suite, len(runs)))
+        print("-" * 78)
 
-            success_rate = phase2['success'].mean() * 100.0 if len(phase2) else 0.0
-        else:
-            print(f"Configs analyzed: {csv_unique_count(summary_csv, 'config')}")
-            print(f"Phase 2 rows: {csv_count(phase2_csv)}")
-            print(f"Phase 3 rows: {csv_count(phase3_csv)}")
+        if c2:
+            print("  Phase 2 (UAV<->GS)")
+            for metric, unit in (("wall_latency_ms", "ms"), ("latency_ms", "ms"),
+                                 ("compute_ms", "ms"), ("net_ms", "ms"),
+                                 ("overhead_bytes", "B")):
+                print("    %-18s %s" % (metric, fmt_ci(stats_util.two_stage_ci(c2, metric), unit)))
+            print("    %-18s %s" % ("puf_eval_ms",
+                                    fmt_ci(stats_util.two_stage_ci(c2, "puf_eval_ms"), "ms")))
+            print("    %-18s %s" % ("fe_rep_ms",
+                                    fmt_ci(stats_util.two_stage_ci(c2, "fe_rep_ms"), "ms")))
 
-            print(f"Average Phase 2 latency: {csv_mean(phase2_csv, 'latency_ms'):.3f} ms")
-            print(f"Average Phase 2 compute: {csv_mean(phase2_csv, 'compute_ms'):.3f} ms")
-            print(f"Average Phase 2 overhead: {csv_mean(phase2_csv, 'overhead_bytes'):.3f} bytes")
+        if c3:
+            print("  Phase 3 (UAV<->UAV, per pair-view)")
+            for metric, unit in (("latency_ms", "ms"), ("compute_ms", "ms"),
+                                 ("net_ms", "ms"), ("overhead_bytes", "B")):
+                print("    %-18s %s" % (metric, fmt_ci(stats_util.two_stage_ci(c3, metric), unit)))
 
-            print(f"Average Phase 3 latency: {csv_mean(phase3_csv, 'latency_ms'):.3f} ms")
-            print(f"Average Phase 3 compute: {csv_mean(phase3_csv, 'compute_ms'):.3f} ms")
-            print(f"Average Phase 3 overhead: {csv_mean(phase3_csv, 'overhead_bytes'):.3f} bytes")
+        # Reliability, reported honestly at the device level.
+        if crel:
+            enrolled = sum(int(r["num_enrolled"]) for r in crel)
+            ok = sum(int(r["auth_successes"]) for r in crel)
+            fefail = sum(int(r["fe_reproduction_failures"]) for r in crel)
+            lo, hi = stats_util.wilson_interval(ok, enrolled)
+            print("  Reliability")
+            print("    device auth success  %d/%d = %.4f   Wilson95 [%.4f, %.4f]"
+                  % (ok, enrolled, ok / enrolled if enrolled else 0.0, lo, hi))
+            if fefail:
+                print("    key-reproduction failures: %d (device never started the handshake)"
+                      % fefail)
+            if enrolled and ok == enrolled:
+                print("    no failures observed => failure probability <= %.4f (rule of three)"
+                      % stats_util.rule_of_three_upper(enrolled))
 
-            success_rate = csv_mean(phase2_csv, 'success') * 100.0
+        # Phase-3 success over pair-views.
+        if c3:
+            ok3 = sum(1 for r in c3 if r["success"] == "1")
+            lo, hi = stats_util.wilson_interval(ok3, len(c3))
+            print("    peer auth success    %d/%d = %.4f   Wilson95 [%.4f, %.4f]"
+                  % (ok3, len(c3), ok3 / len(c3), lo, hi))
 
-        print(f"Authentication success rate (Phase 2 rows): {success_rate:.2f}%")
-        return
-
-    files = glob.glob(os.path.join("simulations", "results", "*.sca"))
-    if not files:
-        print("No .sca files found in simulations/results")
-        return
-
-    merged = defaultdict(list)
-    for path in files:
-        parsed = parse_scalar_file(path)
-        for metric, vals in parsed.items():
-            merged[metric].extend(vals)
-
-    latency = summarize(merged, "phase2LatencyMs")
-    peer_latency = summarize(merged, "phase3LatencyMs")
-    overhead = summarize(merged, "phase2OverheadBytes")
-    success = summarize(merged, "authSuccessRate")
-
-    print("=== OMNeT++ Scalar Summary ===")
-    print(f"Files analyzed: {len(files)}")
-
-    if latency is not None:
-        print(f"Average Phase 2 auth latency: {latency:.3f} ms")
-    else:
-        print("Average Phase 2 auth latency: unavailable")
-
-    if peer_latency is not None:
-        print(f"Average Phase 3 peer auth latency: {peer_latency:.3f} ms")
-    else:
-        print("Average Phase 3 peer auth latency: unavailable")
-
-    if overhead is not None:
-        print(f"Average communication overhead: {overhead:.3f} bytes")
-    else:
-        print("Average communication overhead: unavailable")
-
-    if success is not None:
-        print(f"Authentication success rate: {success * 100.0:.2f}%")
-    else:
-        print("Authentication success rate: unavailable")
+    # Per-primitive cost, with the implementation named so a vendored primitive
+    # is never silently compared against an optimised one.
+    if prim:
+        print("\n" + "=" * 78)
+        print("Per-primitive cost (median us per call, aggregated over runs)")
+        print("=" * 78)
+        agg = {}
+        for r in prim:
+            key = (r["suite"], r["primitive"])
+            agg.setdefault(key, []).append(float(r["median_us"] or 0.0))
+        for (suite, name) in sorted(agg):
+            vals = [v for v in agg[(suite, name)] if v > 0]
+            if vals:
+                print("  %-9s %-14s %8.2f us" % (suite, name, sum(vals) / len(vals)))
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

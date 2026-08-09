@@ -147,7 +147,7 @@ const char* asconVerificationStatus() {
            "VERIFIED: reproduces all 1089 vectors of the official known-answer-test file "
            "crypto_aead/ascon128av12/LWC_AEAD_KAT_128_128.txt from the designers' "
            "reference repository github.com/ascon/ascon-c at tag v1.2.8 (plaintext and "
-           "associated data of 0..32 bytes), checked as eight explicit vectors plus a "
+           "associated data of 0..32 bytes), checked as twelve explicit vectors plus a "
            "SHA3-256 digest over the concatenation of all 1089 ciphertexts; plus "
            "round-trip, rejection of every single-byte corruption of ciphertext and of "
            "associated data, wrong key, wrong nonce, and truncated input. NOT VERIFIED: "

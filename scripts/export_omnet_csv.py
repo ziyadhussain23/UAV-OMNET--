@@ -1,546 +1,508 @@
 #!/usr/bin/env python3
-"""Export OMNeT++ .sca results into Python-style CSV files for delay comparison."""
+"""Export OMNeT++ scalar files to CSV.
 
-from __future__ import annotations
+Schema-driven: each output file is one entry in SCHEMAS with an ordered column
+list and a builder. Adding a metric means touching one place, not three.
+
+Backward compatibility is deliberate. omnet_phase2_results.csv and
+omnet_phase3_results.csv keep their original leading columns in their original
+order, so existing figure and comparison scripts keep working; new columns are
+appended. `idx` is assigned once, globally, before the per-suite split files are
+written, so it is a stable join key across all of them (it was not before).
+"""
 
 import argparse
 import csv
+import os
 import re
-from collections import defaultdict
+import sys
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import stats_util  # noqa: E402
 
 UAV_MODULE_RE = re.compile(r"\.uav\[(\d+)\]$")
+PEER_METRIC_RE = re.compile(r"^phase3_peer_(\d+)_(.+)$")
 
 
-def parse_sca_file(path: Path) -> Dict:
-    run_data = {
-        "file": str(path),
-        "run_id": "",
-        "config": "",
-        "runnumber": "",
-        "modules": defaultdict(dict),
+# ---------------------------------------------------------------------------
+# .sca parsing
+# ---------------------------------------------------------------------------
+
+def parse_sca(path):
+    """Read one scalar file into {run metadata, modules -> {metric: value}}."""
+    run = {
+        "file": str(path), "run_id": "", "config": "unknown", "runnumber": "",
+        "repetition": "", "seedset": "", "itervars": {}, "modules": {},
     }
-
-    with path.open("r", encoding="utf-8") as f:
-        for raw_line in f:
-            line = raw_line.strip()
+    with open(path, "r", errors="replace") as fh:
+        for line in fh:
+            line = line.strip()
             if not line:
                 continue
-
             if line.startswith("run "):
-                parts = line.split(maxsplit=1)
-                if len(parts) == 2:
-                    run_data["run_id"] = parts[1]
-                continue
-
-            if line.startswith("attr configname "):
-                run_data["config"] = line.split(maxsplit=2)[2]
-                continue
-
-            if line.startswith("attr runnumber "):
-                run_data["runnumber"] = line.split(maxsplit=2)[2]
-                continue
-
-            if not line.startswith("scalar "):
-                continue
-
-            parts = line.split()
-            if len(parts) < 4:
-                continue
-
-            module = parts[1]
-            metric = parts[2]
-            value = parts[3]
-
-            try:
-                run_data["modules"][module][metric] = float(value)
-            except ValueError:
-                continue
-
-    return run_data
+                run["run_id"] = line.split(maxsplit=1)[1]
+            elif line.startswith("attr configname "):
+                run["config"] = line.split(maxsplit=2)[2]
+            elif line.startswith("attr runnumber "):
+                run["runnumber"] = line.split(maxsplit=2)[2]
+            elif line.startswith("attr repetition "):
+                run["repetition"] = line.split(maxsplit=2)[2]
+            elif line.startswith("attr seedset "):
+                run["seedset"] = line.split(maxsplit=2)[2]
+            elif line.startswith("itervar "):
+                parts = line.split(maxsplit=2)
+                if len(parts) == 3:
+                    run["itervars"][parts[1]] = parts[2].strip('"').replace('\\"', "")
+            elif line.startswith("scalar "):
+                parts = line.split()
+                if len(parts) < 4:
+                    continue
+                module, metric = parts[1], parts[2]
+                try:
+                    value = float(parts[3])
+                except ValueError:
+                    continue
+                run["modules"].setdefault(module, {})[metric] = value
+    return run
 
 
-def sorted_uav_modules(module_map: Dict[str, Dict[str, float]]) -> List[Tuple[int, str, Dict[str, float]]]:
-    rows = []
-    for module, metrics in module_map.items():
-        m = UAV_MODULE_RE.search(module)
-        if m is None:
-            continue
-        rows.append((int(m.group(1)), module, metrics))
-    rows.sort(key=lambda x: x[0])
-    return rows
-
-
-def find_ground_station_metrics(module_map: Dict[str, Dict[str, float]]) -> Dict[str, float]:
-    for module, metrics in module_map.items():
-        if module.endswith(".groundStation"):
+def gs_metrics(run):
+    for name, metrics in run["modules"].items():
+        if name.endswith(".groundStation"):
             return metrics
     return {}
 
 
-def build_phase_rows(run_data: Dict) -> Tuple[List[Dict], List[Dict], Dict]:
-    config = run_data["config"] or "unknown"
-    run_id = run_data["run_id"] or Path(run_data["file"]).stem
-    modules = run_data["modules"]
+def uav_modules(run):
+    found = []
+    for name, metrics in run["modules"].items():
+        m = UAV_MODULE_RE.search(name)
+        if m:
+            found.append((int(m.group(1)), name, metrics))
+    return sorted(found, key=lambda t: t[0])
 
-    gs = find_ground_station_metrics(modules)
-    auth_success_rate = gs.get("authSuccessRate", 0.0)
 
-    # Detect hash mode from GS scalars (1.0 = spongent, 0.0 = sha3).
-    hash_mode_val = gs.get("hashMode", 0.0)
-    hash_mode = "spongent" if hash_mode_val >= 0.5 else "sha3"
-
-    phase2_rows: List[Dict] = []
-    phase3_rows: List[Dict] = []
-
-    uav_rows = sorted_uav_modules(modules)
-    uav_metrics_by_id: Dict[int, Dict[str, float]] = {uav_id: metrics for uav_id, _, metrics in uav_rows}
-
-    for uav_id, module, metrics in uav_rows:
-        gs_prefix = f"phase2Gs_uav_{uav_id}_"
-
-        phase2_success = int(
-            round(
-                metrics.get(
-                    "phase2Success",
-                    gs.get(gs_prefix + "success", metrics.get("isPhase2Authenticated", 0.0)),
-                )
-            )
-        )
-
-        m1_uav_compute = metrics.get("m1_uav_compute_ms", metrics.get("phase2M1UavComputeMs", 0.0))
-        m1_gs_compute = metrics.get("m1_gs_compute_ms", gs.get(gs_prefix + "m1_gs_compute_ms", 0.0))
-        m1_net = metrics.get("m1_net_ms", gs.get(gs_prefix + "m1_net_ms", 0.0))
-
-        m2_uav_verify = metrics.get("m2_uav_verify_ms", metrics.get("phase2M2UavVerifyMs", 0.0))
-        m2_net = metrics.get("m2_net_ms", metrics.get("phase2M2NetMs", 0.0))
-
-        puf_eval = metrics.get("puf_eval_ms", metrics.get("phase2PufEvalMs", 0.0))
-        bch_ms = metrics.get("bch_ms", gs.get(gs_prefix + "bch_ms", 0.0))
-
-        m3_crypto = metrics.get("m3_crypto_ms", metrics.get("phase2M3CryptoMs", 0.0))
-        m3_uav_compute = metrics.get("m3_uav_compute_ms", m3_crypto)
-        m3_gs_compute = metrics.get("m3_gs_compute_ms", gs.get(gs_prefix + "m3_gs_compute_ms", 0.0))
-        m3_net = metrics.get("m3_net_ms", gs.get(gs_prefix + "m3_net_ms", 0.0))
-
-        m4_uav_compute = metrics.get("m4_uav_compute_ms", metrics.get("phase2M4UavComputeMs", 0.0))
-        m4_net = metrics.get("m4_net_ms", metrics.get("phase2M4NetMs", 0.0))
-
-        # Dual-mode hash timing.
-        phase2_sha3_ms = metrics.get("phase2Sha3ComputeMs", 0.0) + gs.get(gs_prefix + "sha3_ms", 0.0)
-        phase2_spongent_ms = metrics.get("phase2SpongentComputeMs", 0.0) + gs.get(gs_prefix + "spongent_ms", 0.0)
-        m1_uav_sha3_ms = metrics.get("m1_uav_sha3_ms", 0.0)
-        m1_uav_spongent_ms = metrics.get("m1_uav_spongent_ms", 0.0)
-        m3_crypto_sha3_ms = metrics.get("m3_crypto_sha3_ms", 0.0)
-        m3_crypto_spongent_ms = metrics.get("m3_crypto_spongent_ms", 0.0)
-
-        phase2_compute_sum = (
-            m1_uav_compute
-            + m1_gs_compute
-            + m2_uav_verify
-            + puf_eval
-            + bch_ms
-            + m3_uav_compute
-            + m3_gs_compute
-            + m4_uav_compute
-        )
-        phase2_net_sum = m1_net + m2_net + m3_net + m4_net
-        phase2_latency_sum = phase2_compute_sum + phase2_net_sum
-        phase2_compute = metrics.get("phase2ComputeMs", phase2_compute_sum)
-        phase2_net = metrics.get("phase2NetMs", phase2_net_sum)
-        phase2_latency = metrics.get("phase2LatencyMs", phase2_latency_sum)
-        phase2_overhead = int(round(metrics.get("phase2OverheadBytes", 0.0)))
-
-        phase2_rows.append(
-            {
-                "idx": 0,
-                "success": phase2_success,
-                "latency_ms": round(phase2_latency, 6),
-                "compute_ms": round(phase2_compute, 6),
-                "net_ms": round(phase2_net, 6),
-                "overhead_bytes": phase2_overhead,
-                "hash_mode": hash_mode,
-                "sha3_compute_ms": round(phase2_sha3_ms, 6),
-                "spongent_compute_ms": round(phase2_spongent_ms, 6),
-                "details": f"OMNeT++; module={module}; config={config}",
-                "m1_uav_compute_ms": round(m1_uav_compute, 6),
-                "m1_gs_compute_ms": round(m1_gs_compute, 6),
-                "m1_net_ms": round(m1_net, 6),
-                "m1_uav_sha3_ms": round(m1_uav_sha3_ms, 6),
-                "m1_uav_spongent_ms": round(m1_uav_spongent_ms, 6),
-                "m2_uav_verify_ms": round(m2_uav_verify, 6),
-                "m2_net_ms": round(m2_net, 6),
-                "puf_eval_ms": round(puf_eval, 6),
-                "bch_ms": round(bch_ms, 6),
-                "m3_crypto_ms": round(m3_crypto, 6),
-                "m3_crypto_sha3_ms": round(m3_crypto_sha3_ms, 6),
-                "m3_crypto_spongent_ms": round(m3_crypto_spongent_ms, 6),
-                "m3_uav_compute_ms": round(m3_uav_compute, 6),
-                "m3_gs_compute_ms": round(m3_gs_compute, 6),
-                "m3_net_ms": round(m3_net, 6),
-                "m4_uav_compute_ms": round(m4_uav_compute, 6),
-                "m4_net_ms": round(m4_net, 6),
-                "config": config,
-                "run_id": run_id,
-                "uav_id": uav_id,
-            }
-        )
-
-    # Phase 3: Collect per-peer metrics from full-mesh scalars (phase3_peer_X_*).
-    # Also fall back to the old single-peer format for backward compatibility.
-    PEER_METRIC_RE = re.compile(r"^phase3_peer_(\d+)_(.+)$")
-    RESP_METRIC_RE = re.compile(r"^phase3_resp_(\d+)_(.+)$")
-
-    # Build responder data from per-peer responder scalars and old single-peer scalars.
-    responder_by_pair: Dict[Tuple[int, int], Dict[str, float]] = {}
-
-    for responder_id, responder_metrics in uav_metrics_by_id.items():
-        # Per-peer responder scalars (phase3_resp_X_*)
-        for key, value in responder_metrics.items():
-            rm = RESP_METRIC_RE.match(key)
-            if rm:
-                requester_id = int(rm.group(1))
-                metric_name = rm.group(2)
-                pair_key = (requester_id, responder_id)
-                if pair_key not in responder_by_pair:
-                    responder_by_pair[pair_key] = {}
-                responder_by_pair[pair_key][metric_name] = value
-
-        # Old single-peer responder scalars (backward compat)
-        requester_id = int(round(responder_metrics.get("phase3ResponderPeerId", -1.0)))
-        if requester_id < 0:
-            continue
-        pair_key = (requester_id, responder_id)
-        if pair_key not in responder_by_pair:
-            responder_by_pair[pair_key] = {}
-        old_data = responder_by_pair[pair_key]
-        old_data.setdefault("p1_p2_j_compute_ms", responder_metrics.get("responder_p1_p2_j_compute_ms", 0.0))
-        old_data.setdefault("p3_j_compute_ms", responder_metrics.get("responder_p3_j_compute_ms", 0.0))
-        old_data.setdefault("p3_net_ms", responder_metrics.get("responder_p3_net_ms", 0.0))
-        old_data.setdefault("sha3_ms", responder_metrics.get("responder_sha3_ms", 0.0))
-        old_data.setdefault("spongent_ms", responder_metrics.get("responder_spongent_ms", 0.0))
-
-    for i, init_metrics in sorted(uav_metrics_by_id.items()):
-        # Discover all peers this UAV initiated with (full-mesh per-peer scalars).
-        peer_metrics_by_j: Dict[int, Dict[str, float]] = {}
-        for key, value in init_metrics.items():
-            m = PEER_METRIC_RE.match(key)
-            if m:
-                j = int(m.group(1))
-                metric_name = m.group(2)
-                if j not in peer_metrics_by_j:
-                    peer_metrics_by_j[j] = {}
-                peer_metrics_by_j[j][metric_name] = value
-
-        # If no per-peer scalars found, fall back to old single-peer format.
-        if not peer_metrics_by_j:
-            j = int(round(init_metrics.get("phase3PeerId", -1.0)))
-            if j < 0:
-                continue
-            peer_metrics_by_j[j] = {
-                "success": init_metrics.get("phase3Success", 0.0),
-                "compute_ms": init_metrics.get("phase3ComputeMs", 0.0),
-                "net_ms": init_metrics.get("phase3NetMs", 0.0),
-                "latency_ms": init_metrics.get("phase3LatencyMs", 0.0),
-                "overhead_bytes": init_metrics.get("phase3OverheadBytes", 0.0),
-                "p1_i_compute_ms": init_metrics.get("p1_i_compute_ms", 0.0),
-                "p1_p2_j_compute_ms": init_metrics.get("p1_p2_j_compute_ms", 0.0),
-                "p1_net_ms": init_metrics.get("p1_net_ms", 0.0),
-                "p2_p3_i_compute_ms": init_metrics.get("p2_p3_i_compute_ms", 0.0),
-                "p2_net_ms": init_metrics.get("p2_net_ms", 0.0),
-                "p3_j_compute_ms": init_metrics.get("p3_j_compute_ms", 0.0),
-                "p3_net_ms": init_metrics.get("p3_net_ms", 0.0),
-            }
-
-        for j, pm in sorted(peer_metrics_by_j.items()):
-            pair_key = (i, j)
-            resp_data = responder_by_pair.get(pair_key, {})
-
-            p1_i_compute = pm.get("p1_i_compute_ms", 0.0)
-            p1_p2_j_compute = pm.get("p1_p2_j_compute_ms", 0.0)
-            if p1_p2_j_compute == 0.0:
-                p1_p2_j_compute = resp_data.get("p1_p2_j_compute_ms", 0.0)
-
-            p1_net = pm.get("p1_net_ms", 0.0)
-
-            p2_p3_i_compute = pm.get("p2_p3_i_compute_ms", 0.0)
-            p2_net = pm.get("p2_net_ms", 0.0)
-
-            p3_j_compute = pm.get("p3_j_compute_ms", 0.0)
-            if p3_j_compute == 0.0:
-                p3_j_compute = resp_data.get("p3_j_compute_ms", 0.0)
-
-            p3_net = pm.get("p3_net_ms", 0.0)
-            if p3_net == 0.0:
-                p3_net = resp_data.get("p3_net_ms", 0.0)
-
-            phase3_compute = p1_i_compute + p1_p2_j_compute + p2_p3_i_compute + p3_j_compute
-            phase3_net = p1_net + p2_net + p3_net
-            phase3_latency = phase3_compute + phase3_net
-            phase3_overhead = int(round(pm.get("overhead_bytes", 0.0)))
-            phase3_success = int(round(pm.get("success", 0.0)))
-
-            # Initiator-side hash timing for this pair.
-            init_sha3 = pm.get("sha3_ms", 0.0)
-            init_spongent = pm.get("spongent_ms", 0.0)
-            # Responder-side hash timing for this pair.
-            resp_sha3 = resp_data.get("sha3_ms", 0.0)
-            resp_spongent = resp_data.get("spongent_ms", 0.0)
-            pair_sha3 = init_sha3 + resp_sha3
-            pair_spongent = init_spongent + resp_spongent
-
-            phase3_rows.append(
-                {
-                    "idx": 0,
-                    "success": phase3_success,
-                    "latency_ms": round(phase3_latency, 6),
-                    "compute_ms": round(phase3_compute, 6),
-                    "net_ms": round(phase3_net, 6),
-                    "overhead_bytes": phase3_overhead,
-                    "hash_mode": hash_mode,
-                    "sha3_compute_ms": round(pair_sha3, 6),
-                    "spongent_compute_ms": round(pair_spongent, 6),
-                    "details": f"pair=UAV{i}<->UAV{j}; config={config}",
-                    "p1_i_compute_ms": round(p1_i_compute, 6),
-                    "p1_p2_j_compute_ms": round(p1_p2_j_compute, 6),
-                    "p1_net_ms": round(p1_net, 6),
-                    "p2_p3_i_compute_ms": round(p2_p3_i_compute, 6),
-                    "p2_net_ms": round(p2_net, 6),
-                    "p3_j_compute_ms": round(p3_j_compute, 6),
-                    "p3_net_ms": round(p3_net, 6),
-                    "config": config,
-                    "run_id": run_id,
-                    "uav_id": i,
-                    "peer_uav_id": j,
-                }
-            )
-
-    summary = {
-        "config": config,
-        "run_id": run_id,
-        "num_phase2_rows": len(phase2_rows),
-        "num_phase3_rows": len(phase3_rows),
-        "auth_success_rate": auth_success_rate,
-        "hash_mode": hash_mode,
+def run_identity(run):
+    """Fields repeated on every row so any table can be filtered or joined."""
+    gs = gs_metrics(run)
+    suite = "spongent" if gs.get("suite", gs.get("hashMode", 0.0)) >= 0.5 else "sha3"
+    iv = run["itervars"]
+    return {
+        "run_id": run["run_id"] or Path(run["file"]).stem,
+        "config": run["config"],
+        "runnumber": run["runnumber"],
+        "repetition": run["repetition"],
+        "seedset": run["seedset"],
+        "suite": suite,
+        "hash_mode": suite,          # legacy column name, same value
+        "num_uavs": int(gs.get("numUAVs", 0)),
+        "puf_ber": iv.get("ber", ""),
+        "fe_profile": iv.get("profile", ""),
+        "attack_mode": iv.get("attack", ""),
     }
-    return phase2_rows, phase3_rows, summary
 
 
-def mean(values: List[float]) -> float:
-    return sum(values) / len(values) if values else 0.0
+RID_COLS = ["run_id", "config", "runnumber", "repetition", "seedset", "suite",
+            "num_uavs", "puf_ber", "fe_profile", "attack_mode"]
 
 
-def assign_indices(rows: List[Dict]) -> None:
+# ---------------------------------------------------------------------------
+# Row builders
+# ---------------------------------------------------------------------------
+
+def build_phase1(run):
+    rid = run_identity(run)
+    gs = gs_metrics(run)
+    rows = []
+    for uav_id in range(rid["num_uavs"]):
+        p = "phase1_uav_%d_" % uav_id
+        if (p + "success") not in gs:
+            continue
+        row = dict(rid)
+        row.update({
+            "uav_id": uav_id,
+            "success": int(round(gs.get(p + "success", 0.0))),
+            "puf_eval_ms": round(gs.get(p + "puf_eval_ms", 0.0), 6),
+            "fe_gen_ms": round(gs.get(p + "fe_gen_ms", 0.0), 6),
+            "total_ms": round(gs.get(p + "total_ms", 0.0), 6),
+            "helper_bytes": int(round(gs.get(p + "helper_bytes", 0.0))),
+            "challenge_bytes": int(round(gs.get(p + "challenge_bytes", 0.0))),
+            "details": "enrollment; config=%s" % rid["config"],
+        })
+        rows.append(row)
+    return rows
+
+
+PHASE1_COLS = (["idx"] + RID_COLS + [
+    "uav_id", "success", "puf_eval_ms", "fe_gen_ms", "total_ms",
+    "helper_bytes", "challenge_bytes", "details"])
+
+
+def build_phase2(run):
+    rid = run_identity(run)
+    gs = gs_metrics(run)
+    rows = []
+    for uav_id, module, m in uav_modules(run):
+        g = "phase2Gs_uav_%d_" % uav_id
+        compute = m.get("phase2ComputeMs", 0.0)
+        net = m.get("phase2NetMs", 0.0)
+        row = {
+            # --- original leading columns, unchanged order ---
+            "success": int(round(m.get("phase2Success", 0.0))),
+            "latency_ms": round(m.get("phase2LatencyMs", compute + net), 6),
+            "compute_ms": round(compute, 6),
+            "net_ms": round(net, 6),
+            "overhead_bytes": int(round(m.get("phase2OverheadBytes", 0.0))),
+            "hash_mode": rid["hash_mode"],
+            "details": "OMNeT++; module=%s; config=%s" % (module, rid["config"]),
+            "m1_uav_compute_ms": round(m.get("m1_uav_compute_ms", 0.0), 6),
+            "m1_gs_compute_ms": round(gs.get(g + "m1_gs_compute_ms", 0.0), 6),
+            "m1_net_ms": round(gs.get(g + "m1_net_ms", 0.0), 6),
+            "m2_uav_verify_ms": round(m.get("m2_uav_verify_ms", 0.0), 6),
+            "m2_net_ms": round(m.get("m2_net_ms", 0.0), 6),
+            "puf_eval_ms": round(m.get("puf_eval_ms", 0.0), 6),
+            "bch_ms": round(m.get("bch_ms", 0.0), 6),
+            "m3_uav_compute_ms": round(m.get("m3_uav_compute_ms", 0.0), 6),
+            "m3_gs_compute_ms": round(gs.get(g + "m3_gs_compute_ms", 0.0), 6),
+            "m3_net_ms": round(gs.get(g + "m3_net_ms", 0.0), 6),
+            "m4_uav_compute_ms": round(m.get("m4_uav_compute_ms", 0.0), 6),
+            "m4_net_ms": round(m.get("m4_net_ms", 0.0), 6),
+            "uav_id": uav_id,
+            # --- appended ---
+            "wall_latency_ms": round(m.get("phase2_wall_latency_ms", 0.0), 6),
+            "fe_rep_ms": round(m.get("fe_rep_ms", 0.0), 6),
+            "mac_ms": round(m.get("mac_ms", 0.0), 6),
+            "kdf_ms": round(m.get("kdf_ms", 0.0), 6),
+            "dh_ms": round(m.get("dh_ms", 0.0), 6),
+            "aead_ms": round(m.get("aead_ms", 0.0), 6),
+            "gs_mac_ms": round(gs.get(g + "mac_ms", 0.0), 6),
+            "gs_kdf_ms": round(gs.get(g + "kdf_ms", 0.0), 6),
+            "gs_dh_ms": round(gs.get(g + "dh_ms", 0.0), 6),
+            "gs_aead_ms": round(gs.get(g + "aead_ms", 0.0), 6),
+            "bytes_m1": int(round(m.get("bytes_m1", 0.0))),
+            "bytes_m2": int(round(m.get("bytes_m2", 0.0))),
+            "bytes_m3": int(round(m.get("bytes_m3", 0.0))),
+            "bytes_m4": int(round(m.get("bytes_m4", 0.0))),
+            "ephemeral_erased": int(round(m.get("ephemeral_erased", 0.0))),
+            "replay_cache_hits": int(round(m.get("replay_cache_hits", 0.0))),
+        }
+        row.update(rid)
+        row["row_uid"] = "%s|phase2|%d" % (row["run_id"], uav_id)
+        rows.append(row)
+    return rows
+
+
+PHASE2_COLS = (["idx", "success", "latency_ms", "compute_ms", "net_ms",
+                "overhead_bytes", "hash_mode", "details",
+                "m1_uav_compute_ms", "m1_gs_compute_ms", "m1_net_ms",
+                "m2_uav_verify_ms", "m2_net_ms", "puf_eval_ms", "bch_ms",
+                "m3_uav_compute_ms", "m3_gs_compute_ms", "m3_net_ms",
+                "m4_uav_compute_ms", "m4_net_ms", "config", "run_id", "uav_id"]
+               + ["row_uid", "runnumber", "repetition", "seedset", "suite",
+                  "num_uavs", "puf_ber", "fe_profile", "attack_mode",
+                  "wall_latency_ms", "fe_rep_ms", "mac_ms", "kdf_ms", "dh_ms",
+                  "aead_ms", "gs_mac_ms", "gs_kdf_ms", "gs_dh_ms", "gs_aead_ms",
+                  "bytes_m1", "bytes_m2", "bytes_m3", "bytes_m4",
+                  "ephemeral_erased", "replay_cache_hits"])
+
+
+def build_phase3(run):
+    rid = run_identity(run)
+    rows = []
+    for uav_id, module, m in uav_modules(run):
+        peers = {}
+        for metric, value in m.items():
+            pm = PEER_METRIC_RE.match(metric)
+            if pm:
+                peers.setdefault(int(pm.group(1)), {})[pm.group(2)] = value
+        for peer_id, pm in sorted(peers.items()):
+            # One row per ordered (initiator, responder) view. Both sides record
+            # their own timings, so keep both and mark which is which.
+            row = {
+                "success": int(round(pm.get("success", 0.0))),
+                "latency_ms": round(pm.get("latency_ms", 0.0), 6),
+                "compute_ms": round(pm.get("compute_ms", 0.0), 6),
+                "net_ms": round(pm.get("net_ms", 0.0), 6),
+                "overhead_bytes": int(round(pm.get("overhead_bytes", 0.0))),
+                "hash_mode": rid["hash_mode"],
+                "details": "pair=UAV%d<->UAV%d; config=%s" % (uav_id, peer_id, rid["config"]),
+                "p1_i_compute_ms": round(pm.get("p1_i_compute_ms", 0.0), 6),
+                "p1_p2_j_compute_ms": round(pm.get("p1_p2_j_compute_ms", 0.0), 6),
+                "p1_net_ms": round(pm.get("p1_net_ms", 0.0), 6),
+                "p2_p3_i_compute_ms": round(pm.get("p2_p3_i_compute_ms", 0.0), 6),
+                "p2_net_ms": round(pm.get("p2_net_ms", 0.0), 6),
+                "p3_net_ms": round(pm.get("p3_net_ms", 0.0), 6),
+                "uav_id": uav_id,
+                "peer_uav_id": peer_id,
+                "initiator": int(round(pm.get("initiator", 0.0))),
+                "mac_ms": round(pm.get("mac_ms", 0.0), 6),
+                "kdf_ms": round(pm.get("kdf_ms", 0.0), 6),
+                "dh_ms": round(pm.get("dh_ms", 0.0), 6),
+                "pair_id": "%d-%d" % (min(uav_id, peer_id), max(uav_id, peer_id)),
+            }
+            row.update(rid)
+            row["row_uid"] = "%s|phase3|%d|%d" % (row["run_id"], uav_id, peer_id)
+            rows.append(row)
+    return rows
+
+
+PHASE3_COLS = (["idx", "success", "latency_ms", "compute_ms", "net_ms",
+                "overhead_bytes", "hash_mode", "details",
+                "p1_i_compute_ms", "p1_p2_j_compute_ms", "p1_net_ms",
+                "p2_p3_i_compute_ms", "p2_net_ms", "p3_net_ms",
+                "config", "run_id", "uav_id", "peer_uav_id"]
+               + ["row_uid", "runnumber", "repetition", "seedset", "suite",
+                  "num_uavs", "puf_ber", "fe_profile", "attack_mode",
+                  "initiator", "pair_id", "mac_ms", "kdf_ms", "dh_ms"])
+
+
+def build_primitives(run):
+    """Per-primitive cost, with the implementation named."""
+    rid = run_identity(run)
+    rows = []
+    for module, metrics in sorted(run["modules"].items()):
+        prims = {}
+        for metric, value in metrics.items():
+            if metric.startswith("prim_"):
+                body = metric[len("prim_"):]
+                for field in ("_calls", "_total_ms", "_mean_us", "_median_us", "_p95_us"):
+                    if body.endswith(field):
+                        name = body[: -len(field)]
+                        if name.startswith("gs_"):
+                            name = name[3:]
+                        prims.setdefault(name, {})[field.strip("_")] = value
+                        break
+        role = "groundStation" if module.endswith(".groundStation") else "uav"
+        for name, vals in sorted(prims.items()):
+            row = dict(rid)
+            row.update({
+                "module": module, "role": role, "primitive": name,
+                "calls": int(round(vals.get("calls", 0.0))),
+                "total_ms": round(vals.get("total_ms", 0.0), 6),
+                "mean_us": round(vals.get("mean_us", 0.0), 6),
+                "median_us": round(vals.get("median_us", 0.0), 6),
+                "p95_us": round(vals.get("p95_us", 0.0), 6),
+            })
+            rows.append(row)
+    return rows
+
+
+PRIMITIVE_COLS = (["idx"] + RID_COLS + ["module", "role", "primitive", "calls",
+                                        "total_ms", "mean_us", "median_us", "p95_us"])
+
+
+def build_reliability(run):
+    """Fuzzy-extractor reliability: the honest device-level success rate."""
+    rid = run_identity(run)
+    gs = gs_metrics(run)
+    if "numEnrolled" not in gs:
+        return []
+    row = dict(rid)
+    enrolled = int(round(gs.get("numEnrolled", 0.0)))
+    attempts = int(round(gs.get("totalAuthAttempts", 0.0)))
+    successes = int(round(gs.get("totalAuthSuccess", 0.0)))
+    row.update({
+        "num_enrolled": enrolled,
+        "auth_attempts": attempts,
+        "auth_successes": successes,
+        # Of devices that managed to send M1.
+        "auth_success_rate": round(gs.get("authSuccessRate", 0.0), 9),
+        # Of ALL enrolled devices: lower when a device cannot reproduce its key
+        # and therefore never starts the handshake at all.
+        "device_auth_success_rate": round(gs.get("deviceAuthSuccessRate", 0.0), 9),
+        "fe_reproduction_failures": int(round(gs.get("feReproductionFailures", 0.0))),
+    })
+    row.update(stats_util.proportion_summary(successes, enrolled))
+    return [row]
+
+
+RELIABILITY_COLS = (["idx"] + RID_COLS + [
+    "num_enrolled", "auth_attempts", "auth_successes", "auth_success_rate",
+    "device_auth_success_rate", "fe_reproduction_failures",
+    "successes", "trials", "rate", "wilson_lo", "wilson_hi",
+    "rule_of_three_upper_failure"])
+
+
+# ---------------------------------------------------------------------------
+# Summary with confidence intervals
+# ---------------------------------------------------------------------------
+
+SUMMARY_METRICS = [
+    ("phase2", "latency_ms", "ms"), ("phase2", "compute_ms", "ms"),
+    ("phase2", "net_ms", "ms"), ("phase2", "wall_latency_ms", "ms"),
+    ("phase2", "overhead_bytes", "B"), ("phase2", "puf_eval_ms", "ms"),
+    ("phase2", "fe_rep_ms", "ms"), ("phase2", "mac_ms", "ms"),
+    ("phase2", "kdf_ms", "ms"), ("phase2", "dh_ms", "ms"),
+    ("phase3", "latency_ms", "ms"), ("phase3", "compute_ms", "ms"),
+    ("phase3", "net_ms", "ms"), ("phase3", "overhead_bytes", "B"),
+]
+
+SUMMARY_CI_COLS = ["config", "suite", "num_uavs", "puf_ber", "fe_profile",
+                   "attack_mode", "phase", "metric", "unit",
+                   "n_runs", "n_obs_total", "obs_per_run_mean",
+                   "mean_of_run_means", "sd_of_run_means", "sem", "df", "t_crit",
+                   "ci95_lo", "ci95_hi", "pooled_mean", "pooled_sd", "median",
+                   "p05", "p95", "min", "max", "ci_method"]
+
+
+def build_summary_ci(phase_rows):
+    """Long-format summary: one row per (config, phase, metric)."""
+    out = []
+    groups = {}
+    for phase, rows in phase_rows.items():
+        for row in rows:
+            key = (row.get("config", ""), row.get("suite", ""), row.get("num_uavs", ""),
+                   row.get("puf_ber", ""), row.get("fe_profile", ""),
+                   row.get("attack_mode", ""), phase)
+            groups.setdefault(key, []).append(row)
+
+    for (config, suite, n, ber, profile, attack, phase), rows in sorted(
+            groups.items(), key=lambda kv: [str(x) for x in kv[0]]):
+        for mphase, metric, unit in SUMMARY_METRICS:
+            if mphase != phase:
+                continue
+            stats = stats_util.two_stage_ci(rows, metric)
+            if stats is None:
+                continue
+            entry = {"config": config, "suite": suite, "num_uavs": n, "puf_ber": ber,
+                     "fe_profile": profile, "attack_mode": attack,
+                     "phase": phase, "metric": metric, "unit": unit}
+            entry.update(stats)
+            out.append(entry)
+    return out
+
+
+# Legacy wide summary, kept so existing scripts keep working.
+LEGACY_SUMMARY_COLS = ["config", "hash_mode", "num_runs",
+                       "phase2_mean_latency_ms", "phase2_mean_compute_ms",
+                       "phase2_mean_net_ms", "phase2_mean_overhead_bytes",
+                       "phase3_mean_latency_ms", "phase3_mean_compute_ms",
+                       "phase3_mean_net_ms", "phase3_mean_overhead_bytes",
+                       "auth_success_rate", "device_auth_success_rate",
+                       "phase2_latency_ci95_lo", "phase2_latency_ci95_hi", "n_runs"]
+
+
+def build_legacy_summary(p2, p3, rel):
+    by_config = {}
+    for row in p2:
+        by_config.setdefault(row["config"], {"p2": [], "p3": [], "rel": []})["p2"].append(row)
+    for row in p3:
+        by_config.setdefault(row["config"], {"p2": [], "p3": [], "rel": []})["p3"].append(row)
+    for row in rel:
+        by_config.setdefault(row["config"], {"p2": [], "p3": [], "rel": []})["rel"].append(row)
+
+    out = []
+    for config in sorted(by_config):
+        g = by_config[config]
+        p2rows, p3rows, relrows = g["p2"], g["p3"], g["rel"]
+        runs = {r["run_id"] for r in p2rows} or {r["run_id"] for r in p3rows}
+        ci = stats_util.two_stage_ci(p2rows, "latency_ms") if p2rows else None
+
+        def avg(rows, key):
+            vals = [float(r[key]) for r in rows if r.get(key) not in ("", None)]
+            return round(sum(vals) / len(vals), 6) if vals else 0.0
+
+        out.append({
+            "config": config,
+            "hash_mode": p2rows[0]["hash_mode"] if p2rows else "",
+            "num_runs": len(runs),
+            "n_runs": len(runs),
+            "phase2_mean_latency_ms": avg(p2rows, "latency_ms"),
+            "phase2_mean_compute_ms": avg(p2rows, "compute_ms"),
+            "phase2_mean_net_ms": avg(p2rows, "net_ms"),
+            "phase2_mean_overhead_bytes": avg(p2rows, "overhead_bytes"),
+            "phase3_mean_latency_ms": avg(p3rows, "latency_ms"),
+            "phase3_mean_compute_ms": avg(p3rows, "compute_ms"),
+            "phase3_mean_net_ms": avg(p3rows, "net_ms"),
+            "phase3_mean_overhead_bytes": avg(p3rows, "overhead_bytes"),
+            "auth_success_rate": avg(relrows, "auth_success_rate"),
+            "device_auth_success_rate": avg(relrows, "device_auth_success_rate"),
+            "phase2_latency_ci95_lo": ci.get("ci95_lo", "") if ci else "",
+            "phase2_latency_ci95_hi": ci.get("ci95_hi", "") if ci else "",
+        })
+    return out
+
+
+def write_csv(path, columns, rows):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", newline="") as fh:
+        writer = csv.DictWriter(fh, fieldnames=columns, extrasaction="ignore")
+        writer.writeheader()
+        for row in rows:
+            writer.writerow(row)
+    return len(rows)
+
+
+def assign_indices(rows):
     for i, row in enumerate(rows):
         row["idx"] = i
 
 
-def write_csv(path: Path, rows: List[Dict], columns: List[str]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=columns)
-        writer.writeheader()
-        for row in rows:
-            writer.writerow({col: row.get(col, "") for col in columns})
-
-
-def export_from_sca(results_dir: Path, include_configs: Optional[Set[str]] = None) -> Dict[str, Path]:
+def export(results_dir, include_configs=None):
+    results_dir = Path(results_dir).resolve()
     sca_files = sorted(results_dir.glob("*.sca"))
     if not sca_files:
-        raise FileNotFoundError(f"No .sca files found in {results_dir}")
+        raise FileNotFoundError("no .sca files in %s" % results_dir)
 
-    all_phase2: List[Dict] = []
-    all_phase3: List[Dict] = []
-    summaries: List[Dict] = []
-
-    for sca in sca_files:
-        run_data = parse_sca_file(sca)
-        config = run_data["config"] or "unknown"
-        if include_configs is not None and config not in include_configs:
+    p1, p2, p3, prim, rel = [], [], [], [], []
+    for path in sca_files:
+        run = parse_sca(path)
+        if include_configs and run["config"] not in include_configs:
             continue
+        p1 += build_phase1(run)
+        p2 += build_phase2(run)
+        p3 += build_phase3(run)
+        prim += build_primitives(run)
+        rel += build_reliability(run)
 
-        phase2_rows, phase3_rows, summary = build_phase_rows(run_data)
-        all_phase2.extend(phase2_rows)
-        all_phase3.extend(phase3_rows)
-        summaries.append(summary)
+    if not p2 and not p3:
+        raise RuntimeError("no matching runs found (configs=%s)" % include_configs)
 
-    if not all_phase2 and not all_phase3:
-        if include_configs:
-            raise FileNotFoundError(
-                f"No matching .sca rows found for configs: {', '.join(sorted(include_configs))}"
-            )
-        raise FileNotFoundError(f"No usable scalar rows found in {results_dir}")
+    # Assign idx once, globally, before any split file is written, so it stays a
+    # stable join key everywhere.
+    for rows in (p1, p2, p3, prim, rel):
+        assign_indices(rows)
 
-    assign_indices(all_phase2)
-    assign_indices(all_phase3)
+    written = {}
+    written["phase1"] = write_csv(results_dir / "omnet_phase1_results.csv", PHASE1_COLS, p1)
+    written["phase2"] = write_csv(results_dir / "omnet_phase2_results.csv", PHASE2_COLS, p2)
+    written["phase3"] = write_csv(results_dir / "omnet_phase3_results.csv", PHASE3_COLS, p3)
+    written["primitives"] = write_csv(results_dir / "omnet_primitive_costs.csv",
+                                      PRIMITIVE_COLS, prim)
+    written["reliability"] = write_csv(results_dir / "omnet_reliability.csv",
+                                      RELIABILITY_COLS, rel)
 
-    summary_by_config: Dict[str, Dict] = {}
-    for cfg in {s["config"] for s in summaries}:
-        phase2_cfg = [r for r in all_phase2 if r["config"] == cfg]
-        phase3_cfg = [r for r in all_phase3 if r["config"] == cfg]
-        cfg_summaries = [s for s in summaries if s["config"] == cfg]
+    summary_ci = build_summary_ci({"phase2": p2, "phase3": p3})
+    written["summary_ci"] = write_csv(results_dir / "omnet_summary_ci.csv",
+                                      SUMMARY_CI_COLS, summary_ci)
+    written["summary"] = write_csv(results_dir / "omnet_summary.csv",
+                                   LEGACY_SUMMARY_COLS,
+                                   build_legacy_summary(p2, p3, rel))
 
-        # Determine hash mode from the first matching summary.
-        hash_mode = cfg_summaries[0]["hash_mode"] if cfg_summaries else "sha3"
+    # Per-suite splits reuse the global idx rather than renumbering.
+    for suite in ("sha3", "spongent"):
+        s2 = [r for r in p2 if r["suite"] == suite]
+        s3 = [r for r in p3 if r["suite"] == suite]
+        if s2 or s3:
+            write_csv(results_dir / ("omnet_phase2_%s.csv" % suite), PHASE2_COLS, s2)
+            write_csv(results_dir / ("omnet_phase3_%s.csv" % suite), PHASE3_COLS, s3)
+            written["phase2_" + suite] = len(s2)
+            written["phase3_" + suite] = len(s3)
 
-        summary_by_config[cfg] = {
-            "config": cfg,
-            "hash_mode": hash_mode,
-            "num_runs": len(cfg_summaries),
-            "phase2_mean_latency_ms": round(mean([r["latency_ms"] for r in phase2_cfg]), 6),
-            "phase2_mean_compute_ms": round(mean([r["compute_ms"] for r in phase2_cfg]), 6),
-            "phase2_mean_sha3_ms": round(mean([r["sha3_compute_ms"] for r in phase2_cfg]), 6),
-            "phase2_mean_spongent_ms": round(mean([r["spongent_compute_ms"] for r in phase2_cfg]), 6),
-            "phase2_mean_net_ms": round(mean([r["net_ms"] for r in phase2_cfg]), 6),
-            "phase2_mean_overhead_bytes": round(mean([r["overhead_bytes"] for r in phase2_cfg]), 6),
-            "phase3_mean_latency_ms": round(mean([r["latency_ms"] for r in phase3_cfg]), 6),
-            "phase3_mean_compute_ms": round(mean([r["compute_ms"] for r in phase3_cfg]), 6),
-            "phase3_mean_sha3_ms": round(mean([r["sha3_compute_ms"] for r in phase3_cfg]), 6),
-            "phase3_mean_spongent_ms": round(mean([r["spongent_compute_ms"] for r in phase3_cfg]), 6),
-            "phase3_mean_net_ms": round(mean([r["net_ms"] for r in phase3_cfg]), 6),
-            "phase3_mean_overhead_bytes": round(mean([r["overhead_bytes"] for r in phase3_cfg]), 6),
-            "auth_success_rate": round(mean([s["auth_success_rate"] for s in cfg_summaries]), 6),
-        }
-
-    out_phase2 = results_dir / "omnet_phase2_results.csv"
-    out_phase3 = results_dir / "omnet_phase3_results.csv"
-    out_summary = results_dir / "omnet_summary.csv"
-
-    phase2_columns = [
-        "idx",
-        "success",
-        "latency_ms",
-        "compute_ms",
-        "net_ms",
-        "overhead_bytes",
-        "hash_mode",
-        "sha3_compute_ms",
-        "spongent_compute_ms",
-        "details",
-        "m1_uav_compute_ms",
-        "m1_gs_compute_ms",
-        "m1_net_ms",
-        "m1_uav_sha3_ms",
-        "m1_uav_spongent_ms",
-        "m2_uav_verify_ms",
-        "m2_net_ms",
-        "puf_eval_ms",
-        "bch_ms",
-        "m3_crypto_ms",
-        "m3_crypto_sha3_ms",
-        "m3_crypto_spongent_ms",
-        "m3_uav_compute_ms",
-        "m3_gs_compute_ms",
-        "m3_net_ms",
-        "m4_uav_compute_ms",
-        "m4_net_ms",
-        "config",
-        "run_id",
-        "uav_id",
-    ]
-    phase3_columns = [
-        "idx",
-        "success",
-        "latency_ms",
-        "compute_ms",
-        "net_ms",
-        "overhead_bytes",
-        "hash_mode",
-        "sha3_compute_ms",
-        "spongent_compute_ms",
-        "details",
-        "p1_i_compute_ms",
-        "p1_p2_j_compute_ms",
-        "p1_net_ms",
-        "p2_p3_i_compute_ms",
-        "p2_net_ms",
-        "p3_j_compute_ms",
-        "p3_net_ms",
-        "config",
-        "run_id",
-        "uav_id",
-        "peer_uav_id",
-    ]
-    summary_columns = [
-        "config",
-        "hash_mode",
-        "num_runs",
-        "phase2_mean_latency_ms",
-        "phase2_mean_compute_ms",
-        "phase2_mean_sha3_ms",
-        "phase2_mean_spongent_ms",
-        "phase2_mean_net_ms",
-        "phase2_mean_overhead_bytes",
-        "phase3_mean_latency_ms",
-        "phase3_mean_compute_ms",
-        "phase3_mean_sha3_ms",
-        "phase3_mean_spongent_ms",
-        "phase3_mean_net_ms",
-        "phase3_mean_overhead_bytes",
-        "auth_success_rate",
-    ]
-
-    write_csv(out_phase2, all_phase2, phase2_columns)
-    write_csv(out_phase3, all_phase3, phase3_columns)
-    summary_rows = [summary_by_config[cfg] for cfg in sorted(summary_by_config.keys())]
-    write_csv(out_summary, summary_rows, summary_columns)
-
-    # Also produce per-hash-mode CSV files for convenience.
-    outputs: Dict[str, Path] = {
-        "phase2": out_phase2,
-        "phase3": out_phase3,
-        "summary": out_summary,
-    }
-
-    for hash_mode in ("sha3", "spongent"):
-        ph2 = [r for r in all_phase2 if r["hash_mode"] == hash_mode]
-        ph3 = [r for r in all_phase3 if r["hash_mode"] == hash_mode]
-        if not ph2 and not ph3:
-            continue
-
-        # Drop columns for the inactive hash mode to avoid all-zero columns.
-        if hash_mode == "sha3":
-            drop_cols = {"spongent_compute_ms", "m1_uav_spongent_ms", "m3_crypto_spongent_ms"}
-        else:
-            drop_cols = {"sha3_compute_ms", "m1_uav_sha3_ms", "m3_crypto_sha3_ms"}
-
-        mode_ph2_cols = [c for c in phase2_columns if c not in drop_cols]
-        mode_ph3_cols = [c for c in phase3_columns if c not in drop_cols]
-        assign_indices(ph2)
-        assign_indices(ph3)
-        mode_ph2 = results_dir / f"omnet_phase2_{hash_mode}.csv"
-        mode_ph3 = results_dir / f"omnet_phase3_{hash_mode}.csv"
-        write_csv(mode_ph2, ph2, mode_ph2_cols)
-        write_csv(mode_ph3, ph3, mode_ph3_cols)
-        outputs[f"phase2_{hash_mode}"] = mode_ph2
-        outputs[f"phase3_{hash_mode}"] = mode_ph3
-
-    return outputs
+    return written
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(description="Export OMNeT++ .sca data into CSV files.")
-    parser.add_argument(
-        "--results-dir",
-        default="simulations/results",
-        help="Directory containing OMNeT++ .sca files (default: simulations/results)",
-    )
-    parser.add_argument(
-        "--configs",
-        nargs="*",
-        default=None,
-        help="Optional list of config names to include in export",
-    )
-    args = parser.parse_args()
+def main():
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--results-dir", default="simulations/results")
+    ap.add_argument("--configs", nargs="*", default=None)
+    args = ap.parse_args()
 
-    results_dir = Path(args.results_dir).resolve()
-    include_configs = set(args.configs) if args.configs else None
-    outputs = export_from_sca(results_dir, include_configs=include_configs)
-
+    written = export(args.results_dir, set(args.configs) if args.configs else None)
     print("OMNeT++ CSV export complete:")
-    for key, path in sorted(outputs.items()):
-        print(f"  {key}: {path}")
+    for key in sorted(written):
+        print("  %-18s %d rows" % (key, written[key]))
 
 
 if __name__ == "__main__":
