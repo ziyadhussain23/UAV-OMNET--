@@ -140,7 +140,18 @@ aerial platforms. We give a complete security analysis: six theorems
 covering mutual authentication in both directions, peer authentication, replay
 and man-in-the-middle resistance, physical-capture resistance, session-key
 secrecy, and perfect forward secrecy, each reduced to standard assumptions and
-mirrored by a symbolic model in the Tamarin prover.
+mirrored by a symbolic model in the Tamarin prover. A reference implementation in
+OMNeT++~6.3 authenticates all $200$~UAVs and all $3{,}800$ peer pairs of a
+twenty-drone swarm, at $1.50 \pm 0.003$~ms per UAV--GS handshake and
+$0.418 \pm 0.001$~ms per peer pair, with every primitive checked against published
+reference values. Executed attacks confirm the analysis: forged ground-station
+messages draw no response, whereas the same adversary succeeds against a control
+variant with the ground-station check removed, so the negative result is
+falsifiable. Measured on one platform, the protocol proves \emph{comparable} to
+elliptic-curve schemes rather than an order of magnitude faster --- the cost of
+mandatory forward secrecy --- and its advantages are properties: no stored
+long-term secret, no certificate infrastructure, GS-free peer authentication, and
+capture damage bounded to a node's own links.
 \end{abstract}
 
 \textbf{Keywords:} UAV authentication, Physical Unclonable Function, PUF,
@@ -232,8 +243,9 @@ swarms. Its contributions are:
 
 The remainder of the paper covers background (\S\ref{sec:background}), related
 work (\S\ref{sec:related}), the protocol design (\S\ref{sec:protocol}), the
-security analysis (\S\ref{sec:security}), a discussion of scalability and
-design choices (\S\ref{sec:discussion}), and the conclusion
+security analysis (\S\ref{sec:security}), the reference implementation
+(\S\ref{sec:implementation}), the evaluation (\S\ref{sec:results}), a discussion
+of scalability and design choices (\S\ref{sec:discussion}), and the conclusion
 (\S\ref{sec:conclusion}).
 
 % ══════════════════════════════════════════════════════════════
@@ -1020,6 +1032,549 @@ Identity anonymity & --- & Rotating temporary identities \\
 \end{table}
 
 % ══════════════════════════════════════════════════════════════
+% SECTION: REFERENCE IMPLEMENTATION
+% ══════════════════════════════════════════════════════════════
+\section{Reference Implementation}
+\label{sec:implementation}
+
+The protocol of Section~\ref{sec:protocol} is implemented in C++17 on
+OMNeT++~6.3. This section records the concrete primitive choices, the
+parameterisation of the fuzzy extractor, and the verification evidence for each
+component, so that every number in Section~\ref{sec:results} can be traced to a
+specific mechanism.
+
+\subsection{Structure}
+
+The implementation separates protocol logic from simulation machinery. The classes
+implementing Phases~1--4 depend only on abstract cryptographic interfaces and on
+byte strings; they contain no reference to the simulation kernel. This allows the
+entire four-phase exchange to be driven over an in-memory transport and validated
+independently of the network model, which is how the protocol-level results in
+Section~\ref{subsec:functional} were obtained.
+
+A single transmission module owns the link-delay model, so propagation,
+serialisation, processing delay, and jitter are defined once rather than
+duplicated per node type. The same module provides the interception point used by
+the adversary of Section~\ref{subsec:security_eval}; when no adversary is present
+it forwards immediately, so attack and baseline runs remain directly comparable.
+
+\subsection{Canonical message encoding}
+
+Every message is serialised by one encoder, whose output serves simultaneously as
+the wire image, the input to the message-authentication code, and the byte count
+driving the link delay. Each field is emitted as a type tag, a two-byte length,
+and its value, under a header carrying the protocol version, the suite identifier,
+and a per-message-type tag:
+%
+\begin{align}
+\mathsf{field}(t,v) &= \mathsf{u8}(t)\,\|\,\mathsf{u16}(|v|)\,\|\,v,\\[0.5ex]
+\mathsf{enc} &= \mathsf{u8}(\mathrm{ver})\,\|\,\mathsf{u8}(\mathrm{suite})\,\|\,
+                \mathsf{u8}(\mathrm{type})\,\|\,\mathsf{u16}(k)\,\|\,
+                \mathsf{field}(t_1,v_1)\cdots
+\end{align}
+%
+with tags emitted in strictly ascending order. The encoding is therefore
+\emph{injective} (no two distinct field sets share a byte string) and
+\emph{canonical} (each field set has exactly one valid encoding), which is the
+precondition the unforgeability argument of Section~\ref{sec:security} requires of
+its MAC inputs. Because the same encoder produces the transmitted bytes, reported
+communication overhead cannot drift from what is actually sent. Non-canonical
+input --- duplicate or out-of-order tags --- is rejected rather than accepted, and
+reading an absent field raises an error instead of yielding an empty buffer.
+
+\subsection{Cryptographic suites}
+
+Two interoperable suites implement the same abstract interface, selected by one
+parameter. Table~\ref{tab:suites} lists them.
+
+\begin{table}[H]
+\centering
+\caption{The two cryptographic profiles}
+\label{tab:suites}
+\small
+\begin{tabular}{@{}p{2.9cm}p{4.6cm}p{4.6cm}@{}}
+\toprule
+\textbf{Component} & \textbf{Profile \texttt{sha3}} & \textbf{Profile \texttt{spongent}} \\
+\midrule
+Hash $h(\cdot)$ & SHA3-256 truncated to 160 bits & SPONGENT-160/160/16 \\
+MAC & HMAC-SHA3-256, 128-bit tag & prefix keyed sponge, 128-bit tag \\
+KDF & HKDF (extract-then-expand) & one-pass sponge \\
+AEAD & ChaCha20-Poly1305 & Ascon-128a v1.2 \\
+Key exchange & X25519 & X25519 \\
+Hash/MAC level & 128-bit & 80-bit ($c=160$) \\
+Provenance & OpenSSL~3.5 & vendored \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Three points require explicit statement.
+
+\textbf{HMAC is not applicable to the sponge profile.} HMAC is defined over a
+compression function of block size $B$ and requires $|K|\le B$. For
+SPONGENT-160/160/16 the rate is $16$~bits, so the block is two bytes --- smaller
+than any useful key --- and hashing the key first still exceeds it. The
+construction is therefore undefined, and any ad-hoc substitution would have no
+supporting proof. The sponge profile instead uses the standard prefix keyed sponge
+underlying KMAC~\cite{sha3_standard}, which is sound for a sponge and does not
+require HMAC's nested structure: a sponge with non-zero capacity is not
+length-extendable, so the nesting HMAC exists to provide is unnecessary.
+
+\textbf{The sponge profile operates at the 80-bit level.} With capacity $c=160$
+the keyed-sponge bound gives approximately $c/2 = 80$~bits, matching the
+collision resistance of a 160-bit digest but deliberately asymmetric with the
+128-bit AEAD and key-exchange components. It is presented as a constrained-hardware
+profile at that level rather than as a 128-bit one.
+
+\textbf{Key derivation is domain-separated.} Distinct leading bytes separate the
+hash, MAC, and KDF modes even where they share a permutation, and every derived
+key carries a unique label (\texttt{p2-auth}, \texttt{p2-sess}, \texttt{pair-cred},
+\texttt{peer-auth}, \texttt{peer-sess}, \texttt{tid-rotate}), so a key minted for
+one purpose cannot be mistaken for another.
+
+All protocol randomness --- nonces, ephemeral scalars, extractor seeds, enrollment
+challenges --- is drawn from a deterministic generator seeded from the simulator's
+random-number stream. Ephemeral X25519 keys are loaded from those bytes rather
+than generated internally by the library, so an entire run, including every
+ephemeral key, is reproducible from its configured seed.
+
+\subsection{Error-correcting code}
+
+The generator polynomial is formed as the product of the minimal polynomials of
+$\alpha^1,\dots,\alpha^{2t}$ over the \emph{complete} conjugate closure of each
+root. For $t=18$ over $\mathrm{GF}(2^8)$ the closure contains $124$ roots, giving
+$\deg g = 124$ with binary coefficients and therefore
+%
+\begin{equation}
+\mathrm{BCH}(n{=}255,\ k{=}131,\ t{=}18), \qquad n-k = 124 \ \text{parity bits}.
+\end{equation}
+%
+Both properties are asserted at construction: a non-binary coefficient indicates
+an incomplete closure, and the parity length is computed rather than assumed. This
+matters because $k = 131 \ge 128$ is what allows a full response block to be
+protected; taking the parity length as $mt = 144$ instead would give $k = 111$ and
+silently leave the tail of every response uncovered.
+
+Decoding proceeds by syndrome computation, the Berlekamp--Massey algorithm, and a
+Chien search, followed by a verification that the corrected word has all-zero
+syndromes. Failure is reported as failure: the decoder never returns the
+uncorrected input while indicating success.
+
+\subsection{Fuzzy-extractor parameterisation}
+
+Enrollment applies $\mathsf{Gen}$ to a response of $L$ blocks of $n=255$ bits;
+reproduction applies $\mathsf{Rep}$ with the public helper data. Two consequences
+of Lemma~\ref{lem:helper} drive the parameter choice.
+
+First, since the sketch discloses up to $n-k$ bits per block, the block length
+must exceed the leak by a useful margin. A $128$-bit block against a $124$-bit
+leak contributes almost nothing, which is why blocks are $255$ bits --- matching
+the code length --- rather than the response width assumed in earlier treatments.
+Second, the budget
+%
+\begin{equation}
+L\left(\rho n - (n-k)\right) \;\ge\; \ell + 2\log_2(1/\varepsilon)
+\label{eq:budget_impl}
+\end{equation}
+%
+is enforced at construction and raises an error when unmet, rather than being
+documented and left to the caller. With $\rho = 0.95$, $\ell = 256$ and
+$\varepsilon = 2^{-64}$, each block contributes $118.25$ bits and $L=4$ gives
+$473 \ge 384$.
+
+Three profiles are provided (Table~\ref{tab:fe_profiles}). The default uses the
+parameters of Section~\ref{sec:protocol}; the third concatenates a $[3,1,3]$
+repetition inner code, which must operate on repeated measurements of the same
+physical bit. Enrollment fixes a reference and publishes each copy's offset as
+additional helper data; reproduction removes those offsets before voting, reducing
+the per-bit error rate from $p$ to approximately $3p^2$. The inner offsets are
+charged to the leak accounting at $(\mathrm{rep}-1)$ bits per outer bit.
+
+\begin{table}[H]
+\centering
+\caption{Fuzzy-extractor profiles}
+\label{tab:fe_profiles}
+\small
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{Profile} & \textbf{Code} & \textbf{$L$} & \textbf{PUF bits} & \textbf{Leak (bits)} \\
+\midrule
+\texttt{bch255-131-18} (default) & BCH(255,131,18) & 4 & 1020 & 496 \\
+\texttt{bch255-91-25} & BCH(255,91,25) & 5 & 1275 & 820 \\
+\texttt{rep3-bch255-131-18} & $[3,1,3]\oplus$BCH(255,131,18) & 5 & 3825 & 3170 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Reproduction fails closed. If any block fails to decode, no key material is
+returned: a partially recovered response is never converted into a key.
+
+\subsection{PUF models}
+
+Three models are provided, and results state which one they rest on. An
+\emph{idealised} model realises the strong-PUF abstraction as a keyed
+pseudorandom function and is used where near-uniform responses are the intended
+assumption. An \emph{arbiter} model implements the additive-delay formulation over
+128 stages with per-device Gaussian delay weights. A third XORs $k$ arbiter chains.
+
+In the arbiter model, measurement noise is added to the accumulated \emph{delay
+difference} rather than by flipping output bits:
+%
+\begin{equation}
+\Delta' = \sum_{i} w_i \phi_i + \mathcal{N}(0,\sigma), \qquad
+r = \mathbb{1}[\Delta' > 0].
+\end{equation}
+%
+Bits whose delay difference lies near zero therefore flip far more often than the
+rest, reproducing the reliability profile of real silicon. The measured variance of
+per-bit flip rates is approximately $98\times$ that of a uniform bit-flip channel,
+a structural property a per-bit model cannot exhibit. A calibration routine
+converts a target average bit-error rate into the corresponding $\sigma$.
+
+Measured characteristics over 24 devices and 276 device pairs: inter-device Hamming
+distance $0.5019$ for the arbiter model and $0.5026$ for the idealised model, both
+consistent with the ideal $0.5$; calibrated bit-error rates track their targets to
+within $0.2$ percentage points across $1\%$--$10\%$.
+
+\subsection{Verification of primitives}
+
+Each primitive is checked against published reference values where they exist, and
+reports its verification status programmatically. Table~\ref{tab:kat} summarises.
+
+\begin{table}[H]
+\centering
+\caption{Verification evidence per primitive}
+\label{tab:kat}
+\small
+\begin{tabular}{@{}p{3.4cm}p{8.4cm}@{}}
+\toprule
+\textbf{Primitive} & \textbf{Evidence} \\
+\midrule
+SHA3-256 & FIPS~202 / CAVP short-message vectors \\
+HMAC-SHA3-256 & NIST example values with intermediate results \\
+HKDF & RFC~5869, Appendices A.1--A.3 \\
+ChaCha20-Poly1305 & RFC~8439, Section~2.8.2 \\
+X25519 & RFC~7748, Section~6.1; low-order points rejected \\
+Ascon-128a & all 1089 vectors of the official LWC known-answer-test file \\
+SPONGENT-160 & byte-exact against the designers' reference implementation and the
+published \texttt{"Sponge + Present = Spongent"} digest; no official
+known-answer-test file exists for SPONGENT, and none is claimed \\
+BCH(255,131,18) & $\deg g = 124$; $g(x) \mid x^{255}+1$; exact recovery in all
+18{,}000 trials across weights $1$--$18$; failure correctly reported beyond the
+radius in 3{,}000 trials \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Neither vendored primitive has undergone timing or side-channel analysis; tag
+comparisons use a constant-time routine and no branch depends on secret data, but
+nothing stronger is claimed. The verification-status strings state this, and a
+regression test fails if the qualification is removed.
+
+The complete unit suite comprises nine test programs and approximately
+$4.3\times10^{5}$ assertions, covering the primitives above, the encoding, the
+fuzzy extractor, the PUF models, and the full four-phase exchange.
+
+\subsection{Simulation model}
+
+The scenario places $N$ UAVs around a $500\times300$~m field with the ground
+station at its centre. Link delay is the sum of propagation (from node
+coordinates), serialisation at the configured bit rate, a fixed processing delay,
+and half-normal jitter, each reported separately per message. MAC-layer contention
+is not modelled, so reported network delay is a lower bound; this is revisited in
+Section~\ref{sec:discussion}.
+
+All node parameters are declared with defaults and are therefore overridable from
+the configuration file, and statistics are declared so that both scalar and vector
+outputs are recorded.
+
+
+% ══════════════════════════════════════════════════════════════
+% SECTION: EVALUATION
+% ══════════════════════════════════════════════════════════════
+\section{Evaluation}
+\label{sec:results}
+
+\subsection{Methodology}
+\label{subsec:methodology}
+
+Each configuration is executed for ten independent repetitions with distinct seed
+sets. The unit of replication is the \emph{run}, not the individual record:
+observations within one run share a pseudorandom stream and a single scheduling
+epoch, so they are correlated. Confidence intervals are therefore computed in two
+stages --- a per-run mean, then a $t$-interval across run means with $R-1$ degrees
+of freedom. Pooling all records instead would inflate the degrees of freedom from
+$R-1$ to $NR-1$ and understate every interval by roughly $\sqrt{N}$. Intervals are
+reported as mean~$\pm$~half-width at $95\%$; the analysis refuses to form an
+interval from fewer than three runs.
+
+Proportions are accompanied by Wilson score intervals, which behave correctly near
+$0$ and $1$. Where no failure is observed, the rule-of-three upper bound is given:
+$100$ successes in $100$ trials bounds the failure probability at approximately
+$3\%$, and is reported as such rather than as perfect reliability.
+
+Compute times are host wall-clock measurements; network delays are simulated.
+These are distinct clocks and are reported separately, never summed without
+qualification. Per-primitive costs are measured over batches of at least $10^3$
+iterations and reported as medians, because a single clock read (tens of
+nanoseconds) is not negligible against a microsecond-scale operation.
+
+\subsection{Functional correctness}
+\label{subsec:functional}
+
+Table~\ref{tab:functional} reports authentication outcomes. Two success rates are
+distinguished, because they answer different questions. The first counts UAVs that
+transmitted a first message; the second counts \emph{all} enrolled devices. They
+diverge when a device cannot reproduce its master key, in which case it never
+initiates the exchange at all --- and reporting only the former would conceal that
+failure mode entirely.
+
+\begin{table}[H]
+\centering
+\caption{Authentication outcomes, ten repetitions per configuration}
+\label{tab:functional}
+\small
+\begin{tabular}{@{}lccccc@{}}
+\toprule
+\textbf{Configuration} & \textbf{Devices} & \textbf{Authenticated} &
+\textbf{Rate} & \textbf{Wilson 95\%} & \textbf{Peer pairs} \\
+\midrule
+StadiumSHA3 ($N{=}10$)      & 100 & 100 & 1.000 & [0.963, 1.000] & 900/900 \\
+StadiumSPONGENT ($N{=}10$)  & 100 & 100 & 1.000 & [0.963, 1.000] & 900/900 \\
+Baseline5UAV ($N{=}5$)      & 50  & 50  & 1.000 & [0.929, 1.000] & 200/200 \\
+Swarm20 ($N{=}20$)          & 200 & 200 & 1.000 & [0.981, 1.000] & 3800/3800 \\
+ArbiterPuf ($3\%$ BER)      & 100 & 99  & 0.990 & [0.946, 0.998] & 882/894 \\
+HighNoise ($5\%$ BER)       & 100 & 79  & 0.790 & [0.700, 0.858] & 560/730 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+With the idealised PUF model every device authenticates in every configuration,
+including the $20$-UAV swarm where all $3{,}800$ peer-pair views complete. Under
+the arbiter model at $3\%$ bit-error rate one device in a hundred fails to
+regenerate its key; at $5\%$, twenty-one do. Those failures are reliability
+limits of the fuzzy extractor, not authentication failures, and are reported
+separately below.
+
+\subsection{Latency and communication cost}
+
+Table~\ref{tab:latency} reports end-to-end latency in simulated time, together
+with its compute and network components.
+
+\begin{table}[H]
+\centering
+\caption{Phase-2 latency and overhead (mean $\pm$ 95\% CI, ten runs)}
+\label{tab:latency}
+\small
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{Configuration} & \textbf{End-to-end (ms)} & \textbf{Compute (ms)} &
+\textbf{Network (ms)} & \textbf{Overhead (B)} \\
+\midrule
+StadiumSHA3     & $1.5030 \pm 0.0028$ & $1.5316 \pm 0.0212$ & $1.0714 \pm 0.0037$ & $777$ \\
+StadiumSPONGENT & $1.5085 \pm 0.0030$ & $8.5970 \pm 0.1291$ & $1.0767 \pm 0.0037$ & $781$ \\
+Baseline5UAV    & $1.1452 \pm 0.0055$ & $1.5509 \pm 0.0488$ & $0.7171 \pm 0.0053$ & $507$ \\
+Swarm20         & $2.2239 \pm 0.0044$ & $1.6021 \pm 0.0835$ & $1.7936 \pm 0.0031$ & $1317$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Phase-3 peer authentication costs $0.4175 \pm 0.0014$~ms per pair with $197$~bytes
+of traffic, and is independent of swarm size: the per-pair figure is unchanged from
+$N=5$ to $N=20$, so the $O(N^2)$ growth in total cost comes entirely from the pair
+count.
+
+Phase-2 overhead grows with $N$ because the credential package delivered in $M_4$
+carries one per-pair credential per peer. At $N=10$ it is $545$~bytes of the
+$777$-byte total; at $N=20$ it dominates. An on-demand variant issuing credentials
+per request is a straightforward extension where this matters.
+
+\subsection{Cost of individual primitives}
+
+Table~\ref{tab:primitives} reports median per-call cost, measured on the same host
+and clock as the protocol.
+
+\begin{table}[H]
+\centering
+\caption{Median primitive cost per call ($\mu$s)}
+\label{tab:primitives}
+\small
+\begin{tabular}{@{}lcc@{}}
+\toprule
+\textbf{Operation} & \textbf{\texttt{sha3}} & \textbf{\texttt{spongent}} \\
+\midrule
+Hash & 0.99 & --- \\
+MAC & 2.14 & 225.42 \\
+MAC verify & 2.14 & 229.87 \\
+KDF & 4.80 & 133.13 \\
+Extract & 3.88 & 283.07 \\
+AEAD seal & 2.46 & 1.44 \\
+AEAD open & 1.66 & 1.33 \\
+X25519 keygen & 33.19 & 33.39 \\
+X25519 derive & 62.80 & 63.69 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+This table qualifies the comparison between the two profiles in an important way.
+The suite-specific symmetric primitives differ by roughly two orders of magnitude
+in software: the sponge MAC costs $225~\mu$s against $2.1~\mu$s for HMAC-SHA3.
+Yet end-to-end Phase-2 latency is nearly identical ($1.5085$ against
+$1.5030$~ms), because the components common to both profiles dominate: the X25519
+exchange contributes about $96~\mu$s and PUF evaluation with fuzzy-extractor
+reproduction a further $1.4$~ms.
+
+The conclusion is that the lightweight profile is lighter in \emph{gate count},
+not in software execution time. A software comparison of the two hashes therefore
+does not support a claim about protocol-level performance, and the
+hardware-efficiency argument for SPONGENT must rest on area rather than on
+measured software latency.
+
+\subsection{Comparison with public-key baselines}
+\label{subsec:baselines}
+
+Table~\ref{tab:pki} reports RSA, ECDSA, ECDH, and X25519 measured with the same
+library, on the same host, using the same clock as the protocol. Comparisons drawn
+from figures published for other hardware conflate protocol efficiency with
+processor class, and are avoided here.
+
+\begin{table}[H]
+\centering
+\caption{Same-platform public-key cost (OpenSSL 3.5, x86-64)}
+\label{tab:pki}
+\small
+\begin{tabular}{@{}llcc@{}}
+\toprule
+\textbf{Scheme} & \textbf{Operation} & \textbf{Median ($\mu$s)} & \textbf{Mean ($\mu$s)} \\
+\midrule
+RSA-2048 & sign & 1048.6 & 1048.9 \\
+RSA-2048 & verify & 32.0 & 33.3 \\
+ECDSA P-256 & sign & 43.6 & 44.0 \\
+ECDSA P-256 & verify & 109.0 & 110.9 \\
+ECDH P-256 & derive & 91.0 & 92.6 \\
+X25519 & keygen & 65.6 & 66.3 \\
+X25519 & derive & 125.7 & 127.9 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Two observations follow, and both revise expectations that appear in the
+literature.
+
+First, RSA-2048 \emph{verification} costs approximately $33~\mu$s. Figures in the
+millisecond range that are sometimes quoted for this operation are inconsistent
+with a small public exponent by two to three orders of magnitude, and any speedup
+multiplier derived from such a figure is unsound.
+
+Second, this protocol is \emph{comparable} to elliptic-curve schemes rather than
+faster by an order of magnitude. Each handshake performs one X25519 key generation
+and one derivation, approximately $190~\mu$s of public-key work, against
+$91$--$155~\mu$s for an ECDH or ECDSA exchange. This is the direct cost of making
+the ephemeral exchange mandatory, which forward secrecy requires; a protocol
+without it would be cheaper and would not offer the property.
+
+The advantages of the present design are therefore properties rather than raw
+speed: no long-term secret is stored on the device, so physical capture yields no
+key material; no certificate infrastructure is required; peer authentication needs
+no ground-station round trip; the consequence of a capture is bounded to the
+captured node's own links; and the symmetric core is small enough
+($1.0~\mu$s hash, $2.1~\mu$s MAC) that the hardware-area argument is unaffected.
+
+\subsection{Reliability of the fuzzy extractor}
+\label{subsec:reliability}
+
+Table~\ref{tab:noise} reports the measured key-reproduction failure rate across
+bit-error rates and profiles, beside the analytic prediction
+$1-(1-\Pr[\mathrm{Bin}(255,p)>t])^{L}$.
+
+\begin{table}[H]
+\centering
+\caption{Measured key-reproduction failure rate versus binomial prediction
+(30 devices per point)}
+\label{tab:noise}
+\small
+\begin{tabular}{@{}lcccccc@{}}
+\toprule
+\textbf{BER} & \multicolumn{2}{c}{\texttt{bch255-131-18}} &
+\multicolumn{2}{c}{\texttt{bch255-91-25}} &
+\multicolumn{2}{c}{\texttt{rep3-bch255-131-18}} \\
+& meas. & pred. & meas. & pred. & meas. & pred. \\
+\midrule
+1\%  & 0.000 & $9.3\times10^{-11}$ & 0.000 & $<10^{-12}$ & 0.000 & $<10^{-12}$ \\
+2\%  & 0.000 & $5.1\times10^{-6}$  & 0.000 & $9.8\times10^{-11}$ & 0.000 & $<10^{-12}$ \\
+3\%  & 0.033 & $1.2\times10^{-3}$  & 0.000 & $4.0\times10^{-7}$ & 0.000 & $<10^{-12}$ \\
+5\%  & 0.167 & $2.1\times10^{-1}$  & 0.000 & $2.6\times10^{-3}$ & 0.000 & $<10^{-12}$ \\
+7\%  & 0.800 & $8.9\times10^{-1}$  & 0.133 & $1.7\times10^{-1}$ & 0.000 & $2.9\times10^{-8}$ \\
+10\% & 1.000 & $1.0$               & 1.000 & $9.7\times10^{-1}$ & 0.000 & $6.3\times10^{-4}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Twenty of the twenty-one measured points lie within the $95\%$ interval of the
+prediction. This agreement is the substantive evidence that error correction is
+actually performed: a decoder that returned its input unchanged would produce a
+curve independent of the code parameters, and could not track a binomial tail
+across four orders of magnitude.
+
+The default profile reaches a failure rate near $1.2\times10^{-3}$ at $3\%$
+bit-error rate. A failure probability below $10^{-15}$ is \emph{not} attainable
+with a single-layer code at these parameters; the concatenated profile does reach
+it, at three times the PUF cost ($3825$ against $1020$ response bits). This
+trade-off is reported as measured rather than asserted analytically. The default
+profile was chosen partly because its failure rate is observable: a rate of
+$10^{-15}$ cannot be measured in any feasible Monte-Carlo experiment, so a sweep
+against it would carry no information.
+
+\subsection{Security evaluation}
+\label{subsec:security_eval}
+
+The theorems of Section~\ref{sec:security} are complemented by executing attacks
+against the running protocol. Each configuration declares the outcome it expects,
+and the run records whether that expectation held.
+
+A control arm is essential to this argument. A weakened variant that omits the
+verification of the ground station's authenticator on $M_2$ --- the single
+modification --- is subjected to the \emph{same} attacker implementation. Without
+it, a report that every attack failed would be unfalsifiable, since it could
+equally indicate a defective adversary.
+
+\begin{table}[H]
+\centering
+\caption{Attack outcomes. \emph{Oracle} counts UAV responses to forged
+ground-station messages}
+\label{tab:attacks}
+\small
+\begin{tabular}{@{}llccccc@{}}
+\toprule
+\textbf{Attack} & \textbf{Variant} & \textbf{Att.} & \textbf{Acc.} &
+\textbf{Oracle} & \textbf{Expected} & \textbf{Matches} \\
+\midrule
+GS impersonation & hardened & 8 & 0 & 0 & fail & yes \\
+GS impersonation & \emph{legacy} & 8 & 1 & 1 & \emph{succeed} & yes \\
+$M_1$ replay & hardened & 1 & 0 & 0 & fail & yes \\
+Credential sniffing & hardened & 10 & 0 & 0 & fail & yes \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Every outcome matches its declared expectation, including the control arm. Under
+the specified protocol, eight forged ground-station messages produced no response
+of any kind: the UAV verifies the authenticator before performing any
+PUF-dependent computation, so no challenge--response pair is exposed and the
+modelling attack of Corollary~\ref{cor:oracle} has no input. Against the weakened
+variant the same code elicits a response, confirming that the adversary is capable
+of detecting a success and that its absence above is therefore evidence.
+
+Verbatim replay of $M_1$ inside the freshness window is refused by the nonce cache;
+the timestamp window alone would admit it. Passive inspection of $M_4$ across ten
+deliveries recovered no per-pair credential, the package being protected by
+authenticated encryption.
+
+At the protocol level, capture of one UAV exposes only credentials incident to that
+node. In a four-UAV configuration this is three of six pairs, against all six under
+a swarm-wide credential.
+
+
+% ══════════════════════════════════════════════════════════════
 % SECTION 6: DISCUSSION
 % ══════════════════════════════════════════════════════════════
 \section{Discussion}
@@ -1047,12 +1602,23 @@ than optional means forward secrecy is a property of every session, not a
 feature that can be silently skipped.
 
 \subsection{Noise Tolerance}
-The BCH(255,131,18) fuzzy extractor corrects up to $18$ bit-flips, comfortably
-above the $\approx 3.84$ expected flips in a $128$-bit response at a $3\%$ error
-rate, so reproduction of $\text{mk}_i$ succeeds with overwhelming probability
-across the temperature and voltage range of normal operation. The enrollment is
-sized by Eq.~\eqref{eq:budget} so that the extracted key retains full strength
-after the public helper data is accounted for.
+The BCH(255,131,18) fuzzy extractor corrects up to $18$ bit-flips against
+$\approx 7.65$ expected flips in a $255$-bit block at a $3\%$ error rate. That
+margin is real but finite, and \S\ref{subsec:reliability} measures where it ends:
+the default profile fails to reproduce $\text{mk}_i$ for about one device in a
+thousand at $3\%$, roughly one in six at $5\%$, and almost always at $10\%$.
+
+Three consequences deserve statement. First, a failure probability below
+$10^{-15}$ is not attainable with a single-layer code at these parameters; the
+concatenated profile reaches it at three times the PUF cost, and that is the
+trade-off rather than a property of the default configuration. Second, because the
+block length must exceed the $n-k = 124$ bits the sketch discloses, response blocks
+are $255$ bits; a $128$-bit block would leak almost all of itself and contribute
+essentially nothing to the key budget of Eq.~\eqref{eq:budget}. Third, a device
+that cannot reproduce its key does not authenticate incorrectly --- it does not
+authenticate at all, and never transmits a first message. Availability, not
+security, is what degrades with environmental noise, and a deployment must budget
+for re-enrollment or a stronger profile accordingly.
 
 \subsection{Limitations and Future Work}
 The analysis here is at the protocol level; a mechanised end-to-end proof and a
@@ -1082,8 +1648,33 @@ resistance, physical-capture resistance, session-key secrecy, and perfect
 forward secrecy---by reduction to standard assumptions, and mirrored them in a
 Tamarin symbolic model. Built from a $160$-bit hash, a keyed MAC, a lightweight
 AEAD, a KDF, and a single elliptic curve, the protocol is well matched to the
-resource constraints of aerial platforms. A reference implementation and
-simulation study are the subject of ongoing work.
+resource constraints of aerial platforms.
+
+A reference implementation on OMNeT++~6.3 (\S\ref{sec:implementation}) supports
+these claims with measurement. All $200$ UAVs and all $3{,}800$ peer pairs of a
+twenty-drone swarm authenticate, at $1.50 \pm 0.003$~ms per UAV--GS handshake and
+$0.418 \pm 0.001$~ms per peer pair over ten independent repetitions. Every
+primitive is validated against published reference values, including all $1{,}089$
+official Ascon-128a test vectors, and the fuzzy extractor's measured failure rate
+tracks its binomial prediction across four orders of magnitude --- the evidence
+that error correction genuinely occurs rather than being asserted. Executed attacks
+confirm the analysis, and a control variant with the ground-station check removed
+demonstrates that the adversary detects success when it is present, so the negative
+results are falsifiable.
+
+Two findings temper the performance narrative and are reported as measured.
+Same-platform baselines (\S\ref{subsec:baselines}) place RSA-2048 verification at
+$33~\mu$s, so millisecond-scale figures for that operation, and speedup
+multipliers derived from them, are unsound. On the same host this protocol is
+comparable to elliptic-curve schemes rather than faster by an order of magnitude,
+which is the direct cost of a mandatory ephemeral exchange. Its advantages are
+consequently properties rather than raw speed: no long-term secret on the device,
+no certificate infrastructure, peer authentication without a ground-station round
+trip, capture damage bounded to a node's own links, and a symmetric core small
+enough to leave the hardware-area argument intact.
+
+Remaining work is a mechanised proof discharged in Tamarin, an evaluation over a
+contention-aware MAC layer, and a hardware prototype.
 
 \section*{Acknowledgment}
 The author thanks the Indian Institute of Information Technology Guwahati for
