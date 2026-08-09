@@ -52,6 +52,7 @@ struct FeParams {
 /// transmitted in the clear.
 struct HelperData {
     std::vector<Bytes> sketch;   // one n-bit offset per block
+    Bytes repOffsets;            // inner-code per-copy offsets (public, may be empty)
     Bytes seed;                  // extractor salt
     FeParams params;
 

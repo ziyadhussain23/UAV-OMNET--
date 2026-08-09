@@ -163,3 +163,28 @@ The defensible claims are therefore about properties, not speed:
 
 The evaluation section should be rewritten around those, with the same-platform
 table above replacing the cross-platform citations.
+
+## 8. The repetition inner code was initially wrong, and the sweep caught it
+
+Worth recording because it is the clearest example of the measurement finding a
+bug rather than confirming a claim.
+
+The first implementation of the `rep3` profile majority-voted three *consecutive
+PUF bits*. That is not a repetition code: those are three independent physical
+bits, not three noisy measurements of one bit, so voting them reduces no noise and
+actively destroys reliability. Measured FRR at 5% BER was **0.960**, against a
+prediction of essentially zero -- a discrepancy large enough that it could only be
+a defect.
+
+The correct construction fixes a reference at enrollment, publishes each copy's
+offset against that reference as helper data, and in the field un-offsets the
+copies before voting, so every copy really is a measurement of the same value. The
+error rate then falls from p to about 3p^2. After the fix the same measurement gave
+**0.000**.
+
+Two lessons for the write-up. First, a concatenated fuzzy extractor needs the inner
+code to act on repeated measurements, which costs `rep` PUF evaluations per outer
+bit -- the 3x cost is intrinsic, not an implementation artefact. Second, the inner
+offsets are additional public helper data, so the leak accounting has to include
+them: `HelperData::leakBits()` charges `(rep-1)` bits per outer bit on top of the
+outer code's `n-k`.

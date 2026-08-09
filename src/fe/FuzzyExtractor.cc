@@ -101,13 +101,53 @@ Bytes FuzzyExtractor::extractBlock(const Bytes& all, int index, int bits) const 
 
 namespace {
 
-/// Majority vote over groups of `rep` consecutive bits.
-Bytes repetitionDecode(const Bytes& expanded, int outerBits, int rep) {
+/// Concatenated [rep,1,rep] inner code.
+///
+/// The inner code must operate on repeated measurements of the SAME physical
+/// bit, not on `rep` different PUF bits. Majority-voting distinct bits does not
+/// reduce noise at all -- it collapses rep independent bits into one and makes
+/// things worse, because any two of the three flipping corrupts the result. The
+/// correct construction fixes a reference at enrollment, publishes the per-copy
+/// offsets, and votes the corrected copies in the field.
+///
+/// Enrollment: for each outer bit i, take the first copy as the reference and
+/// record the offset of every other copy against it. Those offsets are helper
+/// data (public).
+Bytes repetitionEncodeOffsets(const Bytes& raw, int outerBits, int rep) {
+    Bytes offsets(bytesForBits(static_cast<size_t>(outerBits) * static_cast<size_t>(rep - 1)), 0);
+    for (int i = 0; i < outerBits; ++i) {
+        const bool ref = getBit(raw, static_cast<size_t>(i * rep));
+        for (int r = 1; r < rep; ++r) {
+            const bool copy = getBit(raw, static_cast<size_t>(i * rep + r));
+            setBit(offsets, static_cast<size_t>(i * (rep - 1) + (r - 1)), copy != ref);
+        }
+    }
+    return offsets;
+}
+
+/// Reference value of each outer bit at enrollment: simply the first copy.
+Bytes repetitionReference(const Bytes& raw, int outerBits, int rep) {
+    Bytes out(bytesForBits(static_cast<size_t>(outerBits)), 0);
+    for (int i = 0; i < outerBits; ++i)
+        setBit(out, static_cast<size_t>(i), getBit(raw, static_cast<size_t>(i * rep)));
+    return out;
+}
+
+/// Field reproduction: undo each copy's published offset so all `rep` copies are
+/// estimates of the same reference bit, then majority-vote. Now every copy is a
+/// noisy measurement of one value, which is what makes the vote reduce the error
+/// rate from p to roughly 3p^2 for rep = 3.
+Bytes repetitionDecodeWithOffsets(const Bytes& raw, const Bytes& offsets, int outerBits,
+                                  int rep) {
     Bytes out(bytesForBits(static_cast<size_t>(outerBits)), 0);
     for (int i = 0; i < outerBits; ++i) {
         int ones = 0;
-        for (int r = 0; r < rep; ++r)
-            if (getBit(expanded, static_cast<size_t>(i * rep + r))) ++ones;
+        for (int r = 0; r < rep; ++r) {
+            bool bit = getBit(raw, static_cast<size_t>(i * rep + r));
+            if (r > 0 && getBit(offsets, static_cast<size_t>(i * (rep - 1) + (r - 1))))
+                bit = !bit;
+            if (bit) ++ones;
+        }
         setBit(out, static_cast<size_t>(i), ones * 2 > rep);
     }
     return out;
@@ -130,9 +170,12 @@ GenResult FuzzyExtractor::gen(const Bytes& responseBits, const Bytes& seed) cons
 
     // Collapse the repetition inner code first, if configured.
     const int outerBitsTotal = params_.numBlocks * params_.blockBits;
-    const Bytes outer = (params_.repFactor == 1)
-                            ? responseBits
-                            : repetitionDecode(responseBits, outerBitsTotal, params_.repFactor);
+    Bytes outer = responseBits;
+    if (params_.repFactor > 1) {
+        result.helper.repOffsets =
+            repetitionEncodeOffsets(responseBits, outerBitsTotal, params_.repFactor);
+        outer = repetitionReference(responseBits, outerBitsTotal, params_.repFactor);
+    }
 
     Bytes recovered;
     recovered.reserve(bytesForBits(static_cast<size_t>(outerBitsTotal)));
@@ -188,10 +231,18 @@ RepResult FuzzyExtractor::rep(const Bytes& noisyResponseBits,
     }
 
     const int outerBitsTotal = params_.numBlocks * params_.blockBits;
-    const Bytes outer =
-        (params_.repFactor == 1)
-            ? noisyResponseBits
-            : repetitionDecode(noisyResponseBits, outerBitsTotal, params_.repFactor);
+    Bytes outer = noisyResponseBits;
+    if (params_.repFactor > 1) {
+        const size_t expected = bytesForBits(static_cast<size_t>(outerBitsTotal) *
+                                             static_cast<size_t>(params_.repFactor - 1));
+        if (helper.repOffsets.size() != expected) {
+            result.ok = false;
+            result.stats.totalMs = static_cast<double>(monotonicNs() - t0) / 1.0e6;
+            return result;
+        }
+        outer = repetitionDecodeWithOffsets(noisyResponseBits, helper.repOffsets,
+                                           outerBitsTotal, params_.repFactor);
+    }
 
     Bytes recovered;
     bool allOk = true;
