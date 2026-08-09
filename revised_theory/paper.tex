@@ -1168,7 +1168,9 @@ of Lemma~\ref{lem:helper} drive the parameter choice.
 First, since the sketch discloses up to $n-k$ bits per block, the block length
 must exceed the leak by a useful margin. A $128$-bit block against a $124$-bit
 leak contributes almost nothing, which is why blocks are $255$ bits --- matching
-the code length --- rather than the response width assumed in earlier treatments.
+the code length. A construction that sized blocks to the native response width of
+a $128$-bit challenge--response pair could not satisfy Eq.~\eqref{eq:budget_impl}
+at any block count.
 Second, the budget
 %
 \begin{equation}
@@ -1457,8 +1459,8 @@ X25519 & derive & 125.7 & 127.9 \\
 \end{tabular}
 \end{table}
 
-Two observations follow, and both revise expectations that appear in the
-literature.
+Two observations follow, both of which bear on how the literature reports these
+costs.
 
 First, RSA-2048 \emph{verification} costs approximately $33~\mu$s. Figures in the
 millisecond range that are sometimes quoted for this operation are inconsistent
@@ -1478,6 +1480,162 @@ key material; no certificate infrastructure is required; peer authentication nee
 no ground-station round trip; the consequence of a capture is bounded to the
 captured node's own links; and the symmetric core is small enough
 ($1.0~\mu$s hash, $2.1~\mu$s MAC) that the hardware-area argument is unaffected.
+
+\subsection{Comparison with existing approaches}
+\label{subsec:comparison}
+
+Tables~\ref{tab:cmp_latency}--\ref{tab:cmp_security} position the protocol against
+published PUF-based UAV schemes and against conventional public-key and
+pre-shared-key baselines.
+
+Two caveats govern how these tables should be read. First, figures taken from the
+literature were obtained on the authors' own platforms --- typically ARM
+Cortex-A-class processors or Raspberry Pi boards --- whereas ours are measured on an
+x86-64 host. Cross-platform latency comparisons therefore conflate protocol
+efficiency with processor class, and the platform column is given so that no such
+comparison is made implicitly. The public-key rows in
+Table~\ref{tab:cmp_latency} are the exception: those we re-measured ourselves on
+our own platform (\S\ref{subsec:baselines}), and only those are directly
+comparable with our own rows. Second, communication and storage costs are
+platform-independent and can be compared directly.
+
+\begin{table}[H]
+\centering
+\caption{Authentication latency. Only the rows marked \emph{same platform} were
+measured on our host and are directly comparable with each other}
+\label{tab:cmp_latency}
+\small
+\begin{tabular}{@{}p{3.5cm}p{3.0cm}p{2.6cm}c@{}}
+\toprule
+\textbf{Scheme} & \textbf{Platform} & \textbf{Device$\leftrightarrow$server} &
+\textbf{Peer} \\
+\midrule
+RSA-2048 (sign+verify) & same platform & $1.08$~ms & --- \\
+ECDSA P-256 (sign+verify) & same platform & $0.15$~ms & --- \\
+ECDH P-256 (derive) & same platform & $0.09$~ms & --- \\
+\midrule
+Gope~\cite{puf_lightweight_uav} & ARM (reported) & $10$--$50$~ms & --- \\
+Li~\cite{puf_uav_cross_domain} & ARM (reported) & $45$--$80$~ms & partial \\
+Khan~\cite{puf_6g_uav} & ARM (reported) & $5$--$20$~ms & --- \\
+Bera~\cite{peer2peer_auth} & ARM (reported) & $<1$~ms & $<1$~ms \\
+\midrule
+\textbf{This work} (\texttt{sha3}) & \textbf{same platform} &
+$\mathbf{1.50}$~\textbf{ms} & $\mathbf{0.42}$~\textbf{ms} \\
+\textbf{This work} (\texttt{spongent}) & \textbf{same platform} &
+$\mathbf{1.51}$~\textbf{ms} & $\mathbf{0.42}$~\textbf{ms} \\
+\bottomrule
+\end{tabular}
+\normalsize
+\end{table}
+
+Our end-to-end figure includes one PUF evaluation and one fuzzy-extractor
+reproduction ($\approx 1.4$~ms of the $1.50$~ms total, Table~\ref{tab:latency}),
+which the public-key baselines do not perform at all. Excluding that
+device-specific work, the cryptographic handshake costs approximately $0.2$~ms and
+is thus of the same order as an elliptic-curve exchange. We do not claim an
+order-of-magnitude latency advantage; \S\ref{subsec:baselines} sets out why such
+claims are unsound on this evidence.
+
+\begin{table}[H]
+\centering
+\caption{Communication overhead for full mutual authentication (platform
+independent)}
+\label{tab:cmp_overhead}
+\small
+\begin{tabular}{@{}p{3.5cm}ccc@{}}
+\toprule
+\textbf{Scheme} & \textbf{Msgs} & \textbf{Device$\leftrightarrow$server} &
+\textbf{Peer pair} \\
+\midrule
+RSA-2048 PKI (with cert) & 2--4 & $768$--$1024$~B & $768$~B \\
+ECC-256 (with cert) & 2--4 & $384$--$512$~B & $384$~B \\
+PSK (AES-GCM) & 2 & $\approx 256$~B & $\approx 256$~B \\
+Gope~\cite{puf_lightweight_uav} & 3 & $\approx 200$~B & --- \\
+Li~\cite{puf_uav_cross_domain} & 4 & $\approx 300$~B & --- \\
+\midrule
+\textbf{This work}, $N{=}5$ & 4 & $507$~B & $197$~B \\
+\textbf{This work}, $N{=}10$ & 4 & $777$~B & $197$~B \\
+\textbf{This work}, $N{=}20$ & 4 & $1317$~B & $197$~B \\
+\bottomrule
+\end{tabular}
+\normalsize
+\end{table}
+
+Peer authentication at $197$~B per pair is below every listed alternative, and it
+requires no ground-station involvement. The device--server figure grows with swarm
+size because $M_4$ carries one credential per peer: at $N=10$ the credential
+package is $545$~B of the $777$~B total. Issuing credentials on demand rather than
+in bulk removes that growth at the cost of an extra round trip per new peer, and is
+the appropriate configuration for large swarms.
+
+\begin{table}[H]
+\centering
+\caption{Per-device storage for an $N$-UAV swarm. \emph{Secret} counts material
+whose disclosure compromises authentication}
+\label{tab:cmp_storage}
+\small
+\begin{tabular}{@{}p{3.4cm}p{4.2cm}cc@{}}
+\toprule
+\textbf{Scheme} & \textbf{Stored on device} & \textbf{Total} & \textbf{Secret} \\
+\midrule
+RSA-2048 PKI & private key + cert chain & $\approx 1.5$~KB & $256$~B \\
+ECC-256 & private key + cert & $\approx 0.4$~KB & $32$~B \\
+PSK & $N-1$ pairwise keys & $32(N{-}1)$~B & all \\
+Gope~\cite{puf_lightweight_uav} & helper data + identity & $\approx 0.1$~KB & none \\
+\midrule
+\textbf{This work} & identity, challenge, helper data
+($4\times32$~B sketch $+$ seed) $+$ $N{-}1$ peer credentials &
+$\approx 0.2 + 0.03N$~KB & $32(N{-}1)$~B \\
+\bottomrule
+\end{tabular}
+\normalsize
+\end{table}
+
+The device holds no long-term secret of its own: identity, challenge and helper
+data are public by construction, and the master key exists only transiently, being
+regenerated from the PUF on demand. Per-pair credentials are secret, but each is
+confined to one link, so the disclosure of a device's storage costs $N-1$ links
+rather than the whole mesh --- the property measured in
+\S\ref{subsec:security_eval}. A pre-shared-key deployment stores the same quantity
+of pairwise material but derives it from no physical root, so a captured device
+also yields a usable long-term identity.
+
+\begin{table}[H]
+\centering
+\caption{Security properties. \emph{Ephemeral} indicates forward secrecy from a
+per-session key exchange}
+\label{tab:cmp_security}
+\small
+\begin{tabular}{@{}p{2.9cm}ccccc@{}}
+\toprule
+\textbf{Scheme} & \textbf{No stored} & \textbf{Mutual} & \textbf{Ephemeral} &
+\textbf{GS-free} & \textbf{Capture} \\
+ & \textbf{secret} & \textbf{auth} & \textbf{(fwd sec)} & \textbf{peer} &
+\textbf{blast radius} \\
+\midrule
+RSA-2048 PKI & No & Yes & Optional & Yes & 1 device \\
+ECC-256 & No & Yes & Optional & Yes & 1 device \\
+PSK (AES-GCM) & No & Yes & No & Yes & whole swarm \\
+Gope~\cite{puf_lightweight_uav} & Yes & Yes & No & No & 1 device \\
+Li~\cite{puf_uav_cross_domain} & Yes & Yes & No & Partial & 1 device \\
+Khan~\cite{puf_6g_uav} & Yes & Yes & Yes & No & 1 device \\
+Bera~\cite{peer2peer_auth} & No & Yes & No & Yes & whole swarm \\
+\midrule
+\textbf{This work} & \textbf{Yes} & \textbf{Yes} & \textbf{Mandatory} &
+\textbf{Yes} & $\mathbf{N-1}$ \textbf{links} \\
+\bottomrule
+\end{tabular}
+\normalsize
+\end{table}
+
+The distinguishing combination is GS-free peer authentication rooted in per-pair
+credentials, together with a mandatory rather than optional ephemeral exchange.
+Schemes that root peer authentication in a swarm-wide secret obtain low peer cost
+but lose all isolation on capture; schemes that route peer authentication through
+the ground station retain isolation but cannot operate while that link is
+unavailable. Making the ephemeral exchange mandatory rather than optional costs
+approximately $190~\mu$s per handshake (Table~\ref{tab:pki}) and is the reason we
+do not claim a latency advantage over elliptic-curve schemes.
 
 \subsection{Reliability of the fuzzy extractor}
 \label{subsec:reliability}
@@ -1531,38 +1689,46 @@ The theorems of Section~\ref{sec:security} are complemented by executing attacks
 against the running protocol. Each configuration declares the outcome it expects,
 and the run records whether that expectation held.
 
-A control arm is essential to this argument. A weakened variant that omits the
-verification of the ground station's authenticator on $M_2$ --- the single
-modification --- is subjected to the \emph{same} attacker implementation. Without
-it, a report that every attack failed would be unfalsifiable, since it could
-equally indicate a defective adversary.
+A negative control is essential to this argument. Reporting that every attack
+failed is unfalsifiable on its own, because it is equally consistent with a
+defective adversary. We therefore include an \emph{ablation}: a variant in which
+one mechanism --- the verification of the ground station's authenticator on $M_2$
+(design principle~P3) --- is disabled, with everything else unchanged, and we run
+the \emph{same} attacker implementation against it. The ablation is a measurement
+instrument, not a deployment option; it exists to establish that the adversary
+detects a success when one is available.
 
 \begin{table}[H]
 \centering
 \caption{Attack outcomes. \emph{Oracle} counts UAV responses to forged
-ground-station messages}
+ground-station messages. The final row is the P3 ablation, in which the
+verify-before-respond rule is disabled to validate the adversary}
 \label{tab:attacks}
 \small
 \begin{tabular}{@{}llccccc@{}}
 \toprule
-\textbf{Attack} & \textbf{Variant} & \textbf{Att.} & \textbf{Acc.} &
+\textbf{Attack} & \textbf{Configuration} & \textbf{Att.} & \textbf{Acc.} &
 \textbf{Oracle} & \textbf{Expected} & \textbf{Matches} \\
 \midrule
-GS impersonation & hardened & 8 & 0 & 0 & fail & yes \\
-GS impersonation & \emph{legacy} & 8 & 1 & 1 & \emph{succeed} & yes \\
-$M_1$ replay & hardened & 1 & 0 & 0 & fail & yes \\
-Credential sniffing & hardened & 10 & 0 & 0 & fail & yes \\
+GS impersonation & full protocol & 8 & 0 & 0 & fail & yes \\
+$M_1$ replay & full protocol & 1 & 0 & 0 & fail & yes \\
+Credential sniffing & full protocol & 10 & 0 & 0 & fail & yes \\
+\midrule
+GS impersonation & \emph{ablation: no P3} & 8 & 1 & 1 & \emph{succeed} & yes \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-Every outcome matches its declared expectation, including the control arm. Under
-the specified protocol, eight forged ground-station messages produced no response
-of any kind: the UAV verifies the authenticator before performing any
-PUF-dependent computation, so no challenge--response pair is exposed and the
-modelling attack of Corollary~\ref{cor:oracle} has no input. Against the weakened
-variant the same code elicits a response, confirming that the adversary is capable
-of detecting a success and that its absence above is therefore evidence.
+Every outcome matches its declared expectation. Under the full protocol, eight
+forged ground-station messages produced no response of any kind: the UAV verifies
+the authenticator before performing any PUF-dependent computation, so no
+challenge--response pair is exposed and the modelling attack of
+Corollary~\ref{cor:oracle} has no input to work from. Removing that single check in
+the ablation causes the same attacker code to elicit a response and obtain a
+challenge--response pair, which establishes two things: the adversary detects a
+success when one exists, so the zeros above are evidence rather than an artefact;
+and the verify-before-respond rule --- not some incidental property of the
+implementation --- is what closes the oracle.
 
 Verbatim replay of $M_1$ inside the freshness window is refused by the nonce cache;
 the timestamp window alone would admit it. Passive inspection of $M_4$ across ten
@@ -1637,8 +1803,8 @@ We presented a four-phase PUF-based authentication protocol for UAV swarms. Its
 root of trust is a stable key distilled from each drone's PUF by a fuzzy
 extractor, so that no secret is ever stored on the device. Every handshake
 message is protected by a keyed MAC, and the raw PUF response never leaves the
-UAV, which closes the challenge-harvesting avenue that undermines naive PUF
-protocols. Peer authentication runs directly between UAVs, rooted in per-pair
+UAV, which closes the challenge-harvesting avenue open to challenge--response
+designs that transmit the response or a function of it. Peer authentication runs directly between UAVs, rooted in per-pair
 credentials delivered under authenticated encryption during the UAV--GS
 handshake, so a captured node compromises only its own links. Every session key
 folds in a mandatory, authenticated ephemeral Diffie--Hellman secret, giving
@@ -1657,7 +1823,7 @@ $0.418 \pm 0.001$~ms per peer pair over ten independent repetitions. Every
 primitive is validated against published reference values, including all $1{,}089$
 official Ascon-128a test vectors, and the fuzzy extractor's measured failure rate
 tracks its binomial prediction across four orders of magnitude --- the evidence
-that error correction genuinely occurs rather than being asserted. Executed attacks
+that error correction genuinely occurs. Executed attacks
 confirm the analysis, and a control variant with the ground-station check removed
 demonstrates that the adversary detects success when it is present, so the negative
 results are falsifiable.
