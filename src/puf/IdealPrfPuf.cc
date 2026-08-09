@@ -80,6 +80,7 @@ bool IdealPrfPuf::prfBit(const Bytes& subChallenge) const {
 }
 
 Bytes IdealPrfPuf::evaluateIdeal(const Bytes& challenge, size_t bitCount) const {
+    requireValidBitCount(bitCount);
     ScopedTimer timer(counters_, Primitive::PufEval, challenge.size());
     Bytes out(bytesForBits(bitCount), 0);
     for (size_t j = 0; j < bitCount; ++j) {
@@ -91,6 +92,7 @@ Bytes IdealPrfPuf::evaluateIdeal(const Bytes& challenge, size_t bitCount) const 
 
 Bytes IdealPrfPuf::evaluateNoisy(const Bytes& challenge, size_t bitCount,
                                  crypto::Drbg& rng) const {
+    requireValidBitCount(bitCount);
     ScopedTimer timer(counters_, Primitive::PufEval, challenge.size());
     Bytes out(bytesForBits(bitCount), 0);
     for (size_t j = 0; j < bitCount; ++j) {

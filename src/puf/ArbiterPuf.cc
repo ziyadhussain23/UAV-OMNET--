@@ -56,12 +56,14 @@ double ArbiterPuf::deltaForSubChallenge(const Bytes& subChallenge) const {
 
 void ArbiterPuf::computeDeltas(const Bytes& challenge, size_t bitCount,
                                std::vector<double>& out) const {
+    requireValidBitCount(bitCount);
     out.resize(bitCount);
     for (size_t j = 0; j < bitCount; ++j)
         out[j] = deltaForSubChallenge(deriveSubChallenge(challenge, static_cast<uint16_t>(j)));
 }
 
 Bytes ArbiterPuf::evaluateIdeal(const Bytes& challenge, size_t bitCount) const {
+    requireValidBitCount(bitCount);
     ScopedTimer timer(counters_, Primitive::PufEval, challenge.size());
     Bytes out(bytesForBits(bitCount), 0);
     for (size_t j = 0; j < bitCount; ++j) {
@@ -74,6 +76,7 @@ Bytes ArbiterPuf::evaluateIdeal(const Bytes& challenge, size_t bitCount) const {
 
 Bytes ArbiterPuf::evaluateNoisy(const Bytes& challenge, size_t bitCount,
                                 crypto::Drbg& rng) const {
+    requireValidBitCount(bitCount);
     ScopedTimer timer(counters_, Primitive::PufEval, challenge.size());
     Bytes out(bytesForBits(bitCount), 0);
     for (size_t j = 0; j < bitCount; ++j) {
@@ -101,11 +104,20 @@ double ArbiterPuf::sigmaForTargetBer(double targetBer, crypto::Drbg& rng,
         absDelta.push_back(std::fabs(deltaForSubChallenge(deriveSubChallenge(challenge, j))));
     }
 
+    // Ascending order lets the sum stop as soon as the terms become negligible:
+    // a bit with |Delta| > 9*sigma contributes under 1e-19, and every later term
+    // is smaller still. At a 1% target that skips most of the sample.
+    std::sort(absDelta.begin(), absDelta.end());
+
     // Strictly increasing in sigma: 0 at sigma -> 0, 0.5 at sigma -> inf.
     const auto meanFlip = [&absDelta](double sigma) {
         if (sigma <= 0.0) return 0.0;
+        const double cutoff = 9.0 * sigma;
         double sum = 0.0;
-        for (double d : absDelta) sum += normalTail(d / sigma);
+        for (double d : absDelta) {
+            if (d > cutoff) break;
+            sum += normalTail(d / sigma);
+        }
         return sum / static_cast<double>(absDelta.size());
     };
 
@@ -113,7 +125,9 @@ double ArbiterPuf::sigmaForTargetBer(double targetBer, crypto::Drbg& rng,
     double hi = 1.0;
     int guard = 0;
     while (meanFlip(hi) < target && guard++ < 64) hi *= 2.0;
-    for (int i = 0; i < 64; ++i) {
+    // 40 halvings of [0, hi] leave a relative precision of ~1e-12, far below the
+    // sampling error of the |Delta| population itself.
+    for (int i = 0; i < 40; ++i) {
         const double mid = 0.5 * (lo + hi);
         if (meanFlip(mid) < target)
             lo = mid;

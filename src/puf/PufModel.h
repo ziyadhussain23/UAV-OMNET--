@@ -116,6 +116,16 @@ inline Bytes deriveSubChallenge(const Bytes& challenge, uint16_t j) {
 /// Width of a sub-challenge, in bits. Equals the arbiter stage count.
 constexpr size_t kSubChallengeBits = 128;
 
+/// Largest response length any model will produce. The sub-challenge index is a
+/// uint16_t, so a longer response would silently wrap and start repeating bits;
+/// fail loudly instead. The fuzzy extractor's largest profile needs 3825 bits.
+constexpr size_t kMaxResponseBits = 65536;
+
+inline void requireValidBitCount(size_t bitCount) {
+    if (bitCount > kMaxResponseBits)
+        throw std::invalid_argument("PUF: response length exceeds 65536 bits");
+}
+
 } // namespace puf
 } // namespace uavauth
 
