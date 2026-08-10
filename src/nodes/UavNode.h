@@ -66,12 +66,24 @@ class UavNode : public omnetpp::cSimpleModule {
     void sendToPeer(int peerId, const protocol::Message& payload,
                     const protocol::StepTiming& t);
     void startPhase3Round();
+    void scheduleMobilityTick();
+    void advanceMobility();
 
     int uavId_ = -1;
     std::string suiteName_;
     std::string feProfile_;
     int numUavs_ = 0;
     bool fullMesh_ = true;
+
+    std::string mobilityModel_ = "static";
+    double mobilitySpeedMps_ = 0.0;
+    double mobilityUpdateIntervalMs_ = 100.0;
+    double fieldWidthM_ = 500.0;
+    double fieldHeightM_ = 300.0;
+    double headingRad_ = 0.0;              // current heading, "linear"/"randomwalk"
+    double initialXpos_ = 0.0, initialYpos_ = 0.0;
+    double totalDistanceTraveledM_ = 0.0;
+    std::unique_ptr<crypto::Drbg> mobilityRng_;  // "randomwalk" heading draws only
 
     std::unique_ptr<crypto::CryptoSuite> suite_;
     std::unique_ptr<crypto::Drbg> rng_;

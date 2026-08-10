@@ -25,8 +25,14 @@ from export_omnet_csv import export  # noqa: E402
 
 ALL_CONFIGS = [
     "StadiumSHA3", "StadiumSPONGENT", "Baseline5UAV", "Swarm20",
-    "ArbiterPuf", "HighNoise",
-    "AtkEavesdrop", "AtkCredSniff", "AtkTamper",
+    "ArbiterPuf", "HighNoise", "MobilityLinear", "MobilityRandomWalk",
+]
+
+# Run separately (different `repeat` counts, so a shared --runs N would be
+# wrong for at least one group): NoiseSweep (repeat=3) and the four real
+# attack configs (repeat=5) -- see README.md for the exact invocations.
+ATTACK_CONFIGS = [
+    "AtkGsImpersonate", "AtkLegacyGsImpersonate", "AtkReplayM1", "AtkCredentialSniff",
 ]
 
 

@@ -86,7 +86,8 @@ void WirelessMedium::transmit(SimMessage* msg, cModule* source, cModule* dest) {
     row.rxTime = (simTime() + delaySec).dbl();
     const auto type = msg->payload.type;
     const int code = static_cast<int>(type);
-    row.phase = (code < 200) ? "phase1" : (code < 300 ? "phase2" : "phase3");
+    row.phase = (code < 200) ? "phase1" : (code < 300 ? "phase2"
+                : (code < 400 ? "phase3" : "baseline_sig_auth"));
     row.label = protocol::messageLabel(type);
     row.msgTypeCode = code;
     row.srcId = msg->payload.senderId;

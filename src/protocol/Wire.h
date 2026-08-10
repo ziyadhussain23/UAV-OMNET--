@@ -31,6 +31,14 @@ enum class MessageType : int16_t {
     P3_P2_PEER_RESPONSE = 301,   // P2  UAV_j -> UAV_i
     P3_P3_PEER_COMPLETE = 302,   // P3  UAV_i -> UAV_j
 
+    // RSA/ECDSA baseline (src/protocol/BaselineSigAuth.h): a signature-
+    // authenticated ephemeral-DH handshake, same 4-message shape as Phase 2,
+    // for a same-platform, same-implementation latency comparison.
+    B1_M1_AUTH_REQUEST  = 400,   // B1  UAV -> GS
+    B1_M2_GS_RESPONSE   = 401,   // B2  GS  -> UAV
+    B1_M3_UAV_CONFIRM   = 402,   // B3  UAV -> GS
+    B1_M4_GS_CONFIRM    = 403,   // B4  GS  -> UAV
+
     CTRL_ABORT          = 900
 };
 
@@ -41,6 +49,12 @@ const char* messageLabel(MessageType t);   // "e1".."p3", for the results CSV
 /// Distinct tags are what stop a token minted for one step being replayed as
 /// another (the reflection attack the previous Phase 3 permitted).
 uint8_t macTypeTag(MessageType t);
+
+/// Inverse of macTypeTag. False for a tag that names no known message type
+/// (including CTRL_ABORT's 0x7F, which is never sent on the wire) -- a real
+/// transport that decodes attacker-controlled bytes must be able to reject an
+/// unrecognized tag rather than guess.
+bool messageTypeFromTag(uint8_t tag, MessageType& out);
 
 /// Reasons a handler can reject a message. Recorded per exchange so the results
 /// show *why* an authentication failed rather than only that it did.
@@ -94,6 +108,18 @@ struct Message {
 /// Build the byte string a MAC is computed over: the canonical encoding of a
 /// field subset under this message's type tag.
 Bytes macInput(uint8_t suiteId, MessageType type, const FieldMap& fields);
+
+/// Inverse of Message::encode(): reconstruct a Message from wire bytes.
+///
+/// senderId/receiverId are NOT part of the wire encoding (see Message::encode)
+/// -- the in-process transport passes the whole struct by value and never
+/// serializes it, so it never needed to be. A real byte-level transport (a raw
+/// socket, INET's UDP stack, ...) identifies the sender by network address,
+/// exactly as it would have to for a real deployment; the caller resolves that
+/// address to a logical id and passes it in here. Throws on truncated,
+/// non-canonical, or unrecognized-type-tag input -- decoding attacker-reachable
+/// bytes must fail closed, not guess.
+Message decodeMessage(const Bytes& buf, int senderId, int receiverId = -1);
 
 /// Helpers for the small fixed-width fields.
 Bytes encodeId(int id);

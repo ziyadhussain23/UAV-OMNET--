@@ -5,7 +5,7 @@ fingerprint (a Physical Unclonable Function) rather than in a stored key, with a
 full OMNeT++ 6.3 implementation and evaluation.
 
 The specification and write-up are in
-[`revised_theory/paper.tex`](revised_theory/paper.tex); the implementation is under
+[`final_theory/paper.tex`](final_theory/paper.tex); the implementation is under
 [`src/`](src/); results land in [`simulations/results/`](simulations/results/).
 
 **Contents**
@@ -92,17 +92,22 @@ cd simulations
 ../src/uavauthsim -u Cmdenv -n ../src:../simulations -f omnetpp.ini -c StadiumSHA3 -r 0
 ```
 
-The full campaign, with export and analysis:
+The full campaign, with export and analysis. Omit `--runs` entirely so every
+config runs its full configured `repeat` count (30 for the eight configs
+below) — a previous invocation passed `--runs 10`, which silently limited
+every one of them to only the first 10 of 30 repetitions:
 
 ```bash
-python3 scripts/run_experiments.py --skip-build --runs 10 \
-        --configs StadiumSHA3 StadiumSPONGENT Baseline5UAV Swarm20 ArbiterPuf HighNoise
+python3 scripts/run_experiments.py --skip-build \
+        --configs StadiumSHA3 StadiumSPONGENT Baseline5UAV Swarm20 \
+                  ArbiterPuf HighNoise MobilityLinear MobilityRandomWalk
 python3 scripts/analyze_results.py
 ```
 
 Useful flags: `--clean` archives previous results into
 `simulations/results/archive/<timestamp>/` instead of deleting them; `--runs N`
-limits repetitions; omit `--skip-build` to rebuild first.
+limits repetitions (omit it for the real campaign); omit `--skip-build` to
+rebuild first.
 
 ### Available configurations
 
@@ -114,6 +119,8 @@ limits repetitions; omit `--skip-build` to rebuild first.
 | `Swarm20` | 20 UAVs — 190 peer pairs |
 | `ArbiterPuf` | realistic delay-based PUF model |
 | `HighNoise` | 5 % PUF bit-error rate |
+| `MobilityLinear` | UAVs move at constant velocity, reflecting off the field boundary |
+| `MobilityRandomWalk` | UAVs pick a new random heading every update tick |
 | `NoiseSweep` | 7 error rates x 3 error-correction profiles |
 | `AtkGsImpersonate` | forged ground-station messages |
 | `AtkReplayM1` | replay of a captured message |
@@ -128,12 +135,14 @@ cd simulations && ../src/uavauthsim -u Cmdenv -n ../src:../simulations \
     -f omnetpp.ini -c NoiseSweep && cd ..
 python3 scripts/export_noise_sweep.py
 
-# Attack runs -> omnet_security_results.csv
+# Attack runs, all 5 repetitions each (omit -r to run every configured
+# repetition, not just the first) -> omnet_security_results.csv
 cd simulations
 for c in AtkGsImpersonate AtkLegacyGsImpersonate AtkReplayM1 AtkCredentialSniff; do
-  ../src/uavauthsim -u Cmdenv -n ../src:../simulations -f omnetpp.ini -c $c -r 0
+  ../src/uavauthsim -u Cmdenv -n ../src:../simulations -f omnetpp.ini -c $c
 done
 cd ..
+python3 scripts/export_security_results.py
 
 # Same-platform public-key baselines -> omnet_pki_baseline.csv
 g++ -std=c++17 -O2 -I src -I . tests/bench_pki_baseline.cc \
@@ -141,6 +150,30 @@ g++ -std=c++17 -O2 -I src -I . tests/bench_pki_baseline.cc \
     src/crypto/Sha3Suite.cc src/crypto/Drbg.cc src/crypto/X25519.cc \
     -lcrypto -o /tmp/bench_pki
 /tmp/bench_pki > simulations/results/omnet_pki_baseline.csv
+
+# Literature-sourced energy-cost table -> omnet_energy_costs.csv
+python3 scripts/export_energy_csv.py
+```
+
+### Real 802.11 MAC contention (INET), separate track
+
+A second, separate executable measures the same Phase-2 handshake over a
+real INET 802.11 ad-hoc stack (actual CSMA/CA, retries, collisions) instead
+of the idealised `WirelessMedium` delay model above. Requires INET 4.5 built
+in release mode; see `scripts/build_omnet_project_inet.sh`'s header comment
+for the exact build steps. Deliberately scoped to Phase 2 latency/throughput
+only — no attacker track, no mobility on this track (see
+`simulations/omnetpp_inet.ini`'s header comment for why):
+
+```bash
+scripts/build_omnet_project_inet.sh
+export LD_LIBRARY_PATH="$HOME/oment-workspace2/inet4.5/out/clang-release/src"
+cd simulations
+../src_inet/out/clang-release/uavauthsim_inet -u Cmdenv \
+    -n "../src:../src_inet:.:$HOME/oment-workspace2/inet4.5/src" \
+    -f omnetpp_inet.ini -c Inet80211SHA3
+cd ..
+python3 scripts/export_inet_csv.py
 ```
 
 ---
@@ -606,7 +639,7 @@ core small enough that the hardware-area argument holds.
 
 | Document | Contents |
 |---|---|
-| [`revised_theory/paper.tex`](revised_theory/paper.tex) | full specification, security proofs, implementation and evaluation |
+| [`final_theory/paper.tex`](final_theory/paper.tex) | full specification, security proofs, implementation and evaluation |
 | [`WHAT_I_DID.md`](WHAT_I_DID.md) | the whole project explained in plain language |
 | [`docs/spec-deviations.md`](docs/spec-deviations.md) | every place the code differs from the specification, and why |
 

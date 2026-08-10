@@ -45,7 +45,7 @@ on much slower hardware.
 
 Rather than patch the old code, the old version was archived (`old_implementation/`,
 matching your existing `old_theory/` convention) and a fresh implementation written
-against the corrected specification in `revised_theory/paper.tex`. The old code
+against the corrected specification in `final_theory/paper.tex`. The old code
 stays readable and buildable for reference; the new tree is clean.
 
 The work was done in stages, and **each stage had to pass a test before the next
@@ -188,18 +188,25 @@ package off the air (finds only encrypted data, 0 of 10 readable).
 
 ## 3. What the measurements say
 
-Ten independent runs per setting, every number with a ± confidence range.
+**Thirty independent runs per setting** (up from ten — the ini always said
+`repeat = 30`, but an earlier export pass only ever asked for the first ten;
+that's fixed, and every number below is the real 30-seed figure), every
+number with a ± confidence range.
 
 ### Speed
 
 | Setting | Time for a drone to authenticate | Drones succeeding |
 |---|---|---|
-| 10 drones, `sha3` | 1.5030 ± 0.0028 ms | 100 / 100 |
-| 10 drones, `spongent` | 1.5085 ± 0.0030 ms | 100 / 100 |
-| 5 drones | 1.1452 ± 0.0055 ms | 50 / 50 |
-| 20 drones | 2.2239 ± 0.0044 ms | 200 / 200, all 3,800 pairs |
+| 10 drones, `sha3` | 1.5028 ± 0.0023 ms | 300 / 300 |
+| 10 drones, `spongent` | 1.5082 ± 0.0023 ms | 300 / 300 |
+| 5 drones | 1.1442 ± 0.0039 ms | 150 / 150 |
+| 20 drones | 2.2221 ± 0.0023 ms | 600 / 600, all 5,700 pairs |
+| realistic PUF model (`ArbiterPuf`) | — | 298 / 300 (99.3%) |
+| 5% PUF noise (`HighNoise`) | — | 247 / 300 (82.3%) |
 
-Drone-to-drone authentication takes about **0.42 ms** per pair.
+Drone-to-drone authentication takes about **0.417 ms** per pair, pooled
+across all four swarm-size configs (N=120 runs) — genuinely flat with N, not
+just close.
 
 ### The four findings that change the paper
 
@@ -255,6 +262,52 @@ Note the paper's original claim of a failure rate below 1 in 10¹⁵ is **not
 achievable** with the standard setting; the true figure is about 1 in 1,000. The
 strongest setting does reach it, at three times the PUF cost. That's a trade to
 present honestly, not a claim to repeat.
+
+### Four things that used to be missing, now measured
+
+**Drones that actually move.** Two mobility models were added — constant-velocity
+with boundary bounce, and a random-walk that picks a new heading every tick —
+covering about 2,400 m of travel per run. Authentication speed is unaffected
+(1.5026–1.5028 ms, same as the static case), because the radio-delay model reacts
+to distance instantly; the point was to show that motion doesn't break anything
+structurally, not to model Doppler or fading.
+
+**Real 802.11 contention, not an idealized delay.** A separate build
+(`src_inet/`, its own executable) runs the same Phase-2 handshake over INET's
+real ad-hoc 802.11 stack — actual CSMA/CA, retries, collisions — instead of the
+simple point-to-point delay model used everywhere else. Handshake time jumps from
+1.50 ms to **11.7 ms**, and 2 of 300 attempts (0.7%) fail outright, both from real
+MAC-layer contention. That gap is the honest cost of pretending contention doesn't
+exist; it's a separate, static-position, no-attacker track by design, not a
+replacement for the main results.
+
+**A real energy figure, not just a gate-count.** Every crypto primitive's
+measured time was converted to an energy cost using literature-cited per-cycle
+figures, and radio energy was derived from actual bytes sent. One Phase-2
+handshake costs roughly 210 µJ of radio energy per drone (347 µJ at 20 drones,
+since Phase-3 traffic scales with swarm size) plus about 10 mJ for the X25519
+step — which instantly clarifies that **the elliptic-curve key exchange, not the
+PUF or the radio, is the energy-dominant step**. Every row is explicitly tagged
+measured-derived or literature-estimate, so nothing is quietly assumed.
+
+**A real RSA/ECDSA opponent, not just a bare function call.** The old comparison
+pitted this protocol's full 4-message handshake against RSA/ECDSA's *isolated*
+`sign()`/`verify()` calls — not a fair fight. Now there's an actual competing
+protocol (`BaselineSigAuth`), RSA-signed and ECDSA-signed ephemeral X25519, run
+through the identical simulated network with the same instrumentation, at the
+same 30 seeds:
+
+| Protocol | End-to-end | Realistic (compute+net) | Wire overhead | Success |
+|---|---|---|---|---|
+| This work (`sha3`) | 1.503 ms | 2.60 ms | 777 B | 300/300 |
+| RSA-signed baseline | 1.404 ms | 2.05 ms | 703 B | 300/300 |
+| ECDSA-signed baseline | 0.911 ms | 0.83 ms | 330–335 B | 300/300 |
+
+Read honestly: this protocol is **not** faster than a same-platform ECDSA
+handshake — it's about 3× slower, entirely because of the PUF-reading step ECDSA
+never pays for. What it buys instead is the property ECDSA can't offer at any
+speed: no stored secret to steal if the drone is captured. That's the real
+trade, stated plainly rather than dressed up as a speed win.
 
 ---
 
@@ -312,7 +365,7 @@ Useful commands:
 ```bash
 scripts/build_omnet_project.sh                 # build
 bash tests/run_tests.sh                        # all tests (~2 min)
-python3 scripts/run_experiments.py --runs 10   # run experiments
+python3 scripts/run_experiments.py             # run experiments (all 30 configured reps)
 python3 scripts/analyze_results.py             # summarise with error bars
 ```
 
@@ -320,12 +373,20 @@ python3 scripts/analyze_results.py             # summarise with error bars
 
 ## 6. What is still not done
 
-Stated plainly:
+Stated plainly — this list is shorter than it used to be. Mobility, real 802.11
+contention, an energy model, and a fair RSA/ECDSA comparison are now built and
+measured (Section 3). What's left:
 
-- **Formal verification** (ProVerif/Tamarin) — the machine-checked proof is not
-  built. The security evidence is currently the tests and the attack simulation.
-- **Realistic radio** (INET 802.11) — no signal collisions or retransmissions are
-  modelled, so network delays are a best case. The paper should say so.
+- **Formal verification, actually run** (Tamarin) — the six properties are
+  proven on paper and described as a symbolic model, but no `.spthy` file has
+  been machine-checked yet. The security evidence today is the tests and the
+  attack simulation, not a machine-verified proof.
+- **Dedicated DoS/flooding study** — only replay and impersonation were
+  attack-tested; no message-flooding or nonce-cache-exhaustion evaluation.
+- **ML-modeling-attack curve** — no plot of modeling-attack accuracy vs. number
+  of CRPs to bound how learnable the Arbiter-PUF model is.
+- **Reproducibility artifact** — no Dockerfile or one-command "build+run+
+  regenerate everything" packaging.
 - **Real hardware** — everything is simulated; no FPGA prototype.
 - **Side-channel analysis** — no timing-attack analysis of the two hand-written
   primitives. Their status strings say so.
@@ -341,8 +402,17 @@ official reference values; attacks fail against the new design and demonstrably
 succeed against the old one; and reliability limits are measured rather than
 assumed.
 
-Four claims in the paper need correcting (the RSA figure, the speed multiplier, the
-SPONGENT ratio, and the reliability figure), and the honest story is now about
-*properties* — no stored secrets, no certificates, no central dependency, contained
-damage from capture — rather than about being dramatically faster. That's a
-defensible paper. The previous version's headline numbers were not.
+Beyond that first rebuild, four more things got built and measured for real: UAV
+mobility, genuine 802.11 MAC contention (not an idealized delay), a derived
+energy-cost model, and a fair full-protocol RSA/ECDSA baseline — all at 30 seeds,
+not 10. The RSA/ECDSA comparison in particular closes out the last "not really
+fair" comparison in the paper: this protocol is honestly about 3× slower than a
+same-platform ECDSA handshake, and the paper says so — the actual selling point
+is no stored secret, not raw speed.
+
+Four claims in the original paper needed correcting (the RSA figure, the speed
+multiplier, the SPONGENT ratio, and the reliability figure), and the honest story
+is now about *properties* — no stored secrets, no certificates, no central
+dependency, contained damage from capture — rather than about being dramatically
+faster. That's a defensible paper. The previous version's headline numbers were
+not.

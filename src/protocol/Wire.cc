@@ -18,6 +18,10 @@ const char* messageTypeName(MessageType t) {
         case MessageType::P3_P1_PEER_REQUEST:  return "P3_P1_PEER_REQUEST";
         case MessageType::P3_P2_PEER_RESPONSE: return "P3_P2_PEER_RESPONSE";
         case MessageType::P3_P3_PEER_COMPLETE: return "P3_P3_PEER_COMPLETE";
+        case MessageType::B1_M1_AUTH_REQUEST:  return "B1_M1_AUTH_REQUEST";
+        case MessageType::B1_M2_GS_RESPONSE:   return "B1_M2_GS_RESPONSE";
+        case MessageType::B1_M3_UAV_CONFIRM:   return "B1_M3_UAV_CONFIRM";
+        case MessageType::B1_M4_GS_CONFIRM:    return "B1_M4_GS_CONFIRM";
         case MessageType::CTRL_ABORT:          return "CTRL_ABORT";
     }
     return "UNKNOWN";
@@ -36,6 +40,10 @@ const char* messageLabel(MessageType t) {
         case MessageType::P3_P1_PEER_REQUEST:  return "p1";
         case MessageType::P3_P2_PEER_RESPONSE: return "p2";
         case MessageType::P3_P3_PEER_COMPLETE: return "p3";
+        case MessageType::B1_M1_AUTH_REQUEST:  return "b1";
+        case MessageType::B1_M2_GS_RESPONSE:   return "b2";
+        case MessageType::B1_M3_UAV_CONFIRM:   return "b3";
+        case MessageType::B1_M4_GS_CONFIRM:    return "b4";
         case MessageType::CTRL_ABORT:          return "abort";
     }
     return "unknown";
@@ -54,9 +62,34 @@ uint8_t macTypeTag(MessageType t) {
         case MessageType::P3_P1_PEER_REQUEST:  return 0x21;
         case MessageType::P3_P2_PEER_RESPONSE: return 0x22;
         case MessageType::P3_P3_PEER_COMPLETE: return 0x23;
+        case MessageType::B1_M1_AUTH_REQUEST:  return 0x31;
+        case MessageType::B1_M2_GS_RESPONSE:   return 0x32;
+        case MessageType::B1_M3_UAV_CONFIRM:   return 0x33;
+        case MessageType::B1_M4_GS_CONFIRM:    return 0x34;
         case MessageType::CTRL_ABORT:          return 0x7F;
     }
     return 0xFF;
+}
+
+bool messageTypeFromTag(uint8_t tag, MessageType& out) {
+    switch (tag) {
+        case 0x01: out = MessageType::ENROLL_REQUEST;      return true;
+        case 0x02: out = MessageType::ENROLL_CHALLENGE;    return true;
+        case 0x03: out = MessageType::ENROLL_RESPONSE;     return true;
+        case 0x04: out = MessageType::ENROLL_COMMIT;       return true;
+        case 0x11: out = MessageType::P2_M1_AUTH_REQUEST;  return true;
+        case 0x12: out = MessageType::P2_M2_GS_RESPONSE;   return true;
+        case 0x13: out = MessageType::P2_M3_UAV_CONFIRM;   return true;
+        case 0x14: out = MessageType::P2_M4_GS_CONFIRM;    return true;
+        case 0x21: out = MessageType::P3_P1_PEER_REQUEST;  return true;
+        case 0x22: out = MessageType::P3_P2_PEER_RESPONSE; return true;
+        case 0x23: out = MessageType::P3_P3_PEER_COMPLETE; return true;
+        case 0x31: out = MessageType::B1_M1_AUTH_REQUEST;  return true;
+        case 0x32: out = MessageType::B1_M2_GS_RESPONSE;   return true;
+        case 0x33: out = MessageType::B1_M3_UAV_CONFIRM;   return true;
+        case 0x34: out = MessageType::B1_M4_GS_CONFIRM;    return true;
+        default:   return false;
+    }
 }
 
 const char* abortReasonName(AbortReason r) {
@@ -103,6 +136,20 @@ size_t Message::wireBytes() const { return encode().size(); }
 
 Bytes macInput(uint8_t suiteId, MessageType type, const FieldMap& fields) {
     return core::encodeFields(suiteId, macTypeTag(type), fields);
+}
+
+Message decodeMessage(const Bytes& buf, int senderId, int receiverId) {
+    const core::DecodedFields decoded = core::decodeFields(buf);
+    MessageType type;
+    if (!messageTypeFromTag(decoded.typeTag, type))
+        throw std::runtime_error("decodeMessage: unrecognized type tag");
+    Message m;
+    m.type = type;
+    m.suiteId = decoded.suiteId;
+    m.senderId = senderId;
+    m.receiverId = receiverId;
+    m.fields = decoded.fields;
+    return m;
 }
 
 Bytes encodeId(int id) {

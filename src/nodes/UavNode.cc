@@ -4,6 +4,8 @@
 #include "puf/ArbiterPuf.h"
 #include "puf/IdealPrfPuf.h"
 
+#include <cmath>
+
 namespace uavauth {
 namespace nodes {
 
@@ -69,12 +71,65 @@ void UavNode::initialize(int stage) {
         authLatencySignal_ = registerSignal("authLatency");
         peerAuthLatencySignal_ = registerSignal("peerAuthLatency");
         commOverheadSignal_ = registerSignal("commOverhead");
+
+        mobilityModel_ = par("mobilityModel").stdstringValue();
+        mobilitySpeedMps_ = par("mobilitySpeedMps").doubleValue();
+        mobilityUpdateIntervalMs_ = par("mobilityUpdateIntervalMs").doubleValue();
+        fieldWidthM_ = par("fieldWidthM").doubleValue();
+        fieldHeightM_ = par("fieldHeightM").doubleValue();
+        initialXpos_ = par("xpos").doubleValue();
+        initialYpos_ = par("ypos").doubleValue();
+        headingRad_ = par("mobilityHeadingDeg").doubleValue() * M_PI / 180.0;
+        if (mobilityModel_ != "static") {
+            mobilityRng_ = std::make_unique<crypto::Drbg>(
+                fromString("uav-mobility-" + std::to_string(uavId_)));
+        }
+        if (mobilityModel_ != "static" && mobilityModel_ != "linear" &&
+            mobilityModel_ != "randomwalk")
+            throw cRuntimeError("unknown mobilityModel '%s'", mobilityModel_.c_str());
         return;
     }
 
     // Stage 1: the ground station has now enrolled us, so schedule the handshake.
     const simtime_t authStart = par("authStartTime").doubleValue();
     scheduleAt(simTime() + authStart, new cMessage("startPhase2"));
+
+    if (mobilityModel_ != "static") scheduleMobilityTick();
+}
+
+void UavNode::scheduleMobilityTick() {
+    const simtime_t interval = SimTime(mobilityUpdateIntervalMs_ / 1000.0);
+    scheduleAt(simTime() + interval, new cMessage("mobilityTick"));
+}
+
+void UavNode::advanceMobility() {
+    const double dt = mobilityUpdateIntervalMs_ / 1000.0;
+    if (mobilityModel_ == "randomwalk")
+        headingRad_ = mobilityRng_->uniformDouble() * 2.0 * M_PI;
+
+    const double x = par("xpos").doubleValue();
+    const double y = par("ypos").doubleValue();
+    double vx = mobilitySpeedMps_ * std::cos(headingRad_);
+    double vy = mobilitySpeedMps_ * std::sin(headingRad_);
+    double nx = x + vx * dt;
+    double ny = y + vy * dt;
+
+    // Reflect off the field boundary; looped in case a single step would
+    // otherwise overshoot more than one edge (not expected at these defaults,
+    // but cheap to guard against).
+    for (int i = 0; i < 4; ++i) {
+        bool bounced = false;
+        if (nx < 0.0) { nx = -nx; vx = -vx; bounced = true; }
+        else if (nx > fieldWidthM_) { nx = 2.0 * fieldWidthM_ - nx; vx = -vx; bounced = true; }
+        if (ny < 0.0) { ny = -ny; vy = -vy; bounced = true; }
+        else if (ny > fieldHeightM_) { ny = 2.0 * fieldHeightM_ - ny; vy = -vy; bounced = true; }
+        if (!bounced) break;
+    }
+    headingRad_ = std::atan2(vy, vx);   // persists across ticks for "linear" continuity
+
+    totalDistanceTraveledM_ += std::sqrt((nx - x) * (nx - x) + (ny - y) * (ny - y));
+    par("xpos").setDoubleValue(nx);
+    par("ypos").setDoubleValue(ny);
 }
 
 void UavNode::provision(const protocol::DeviceState& state) { proto_->provision(state); }
@@ -146,6 +201,9 @@ void UavNode::handleMessage(cMessage* raw) {
             sendToGs(r.reply, r.timing);
         } else if (name == "startPhase3") {
             startPhase3Round();
+        } else if (name == "mobilityTick") {
+            advanceMobility();
+            scheduleMobilityTick();
         }
         return;
     }
@@ -267,6 +325,17 @@ void UavNode::finish() {
     recordScalar("hashMode", suiteName_ == "spongent" ? 1.0 : 0.0);
     recordScalar("isPhase2Authenticated", proto_->phase2Established() ? 1.0 : 0.0);
     recordScalar("numPeerSessionKeys", static_cast<double>(phase3_.size()));
+
+    // 0=static, 1=linear, 2=randomwalk -- numeric so the generic exporter can
+    // read it the same way it already reads hashMode.
+    const double mobilityCode = mobilityModel_ == "linear" ? 1.0
+                                 : mobilityModel_ == "randomwalk" ? 2.0 : 0.0;
+    recordScalar("mobilityModel", mobilityCode);
+    recordScalar("initialXpos", initialXpos_);
+    recordScalar("initialYpos", initialYpos_);
+    recordScalar("finalXpos", par("xpos").doubleValue());
+    recordScalar("finalYpos", par("ypos").doubleValue());
+    recordScalar("totalDistanceTraveledM", totalDistanceTraveledM_);
 
     const Phase2Record& p = phase2_;
     const double compute = p.m1ComputeMs + p.m2VerifyMs + p.m3ComputeMs + p.m4ComputeMs;

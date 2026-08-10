@@ -41,3 +41,7 @@ __pycache__/
 *.tmp
 *.core
 core
+graphify-out
+.claude
+old_implementation
+old_theory

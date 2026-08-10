@@ -31,6 +31,8 @@ struct StepTiming {
     double kdfMs = 0.0;
     double dhMs = 0.0;
     double aeadMs = 0.0;
+    double signMs = 0.0;     // BaselineSigAuth.h only; zero for the PUF protocol
+    double verifyMs = 0.0;
 };
 
 /// Outcome of handling one protocol message.

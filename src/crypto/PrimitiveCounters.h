@@ -26,6 +26,10 @@ enum class Primitive {
     BchEncode,
     BchDecode,
     Rng,
+    Sign,     // RSA/ECDSA baseline (src/crypto/SignatureSuite.h)
+    Verify,   // long-term keypair generation is a one-time enrollment cost,
+              // like the PUF's own manufacturing, so no per-handshake
+              // "keygen" primitive is charged here -- only sign/verify are.
     COUNT
 };
 

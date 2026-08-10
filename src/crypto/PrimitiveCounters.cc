@@ -24,6 +24,8 @@ const char* primitiveName(Primitive p) {
         case Primitive::BchEncode: return "bch_encode";
         case Primitive::BchDecode: return "bch_decode";
         case Primitive::Rng:       return "rng";
+        case Primitive::Sign:      return "sign";
+        case Primitive::Verify:    return "verify";
         case Primitive::COUNT:     break;
     }
     return "unknown";

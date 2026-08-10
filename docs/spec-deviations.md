@@ -1,6 +1,6 @@
 # Specification deviations
 
-Points where the implementation departs from `revised_theory/paper.tex`, with the
+Points where the implementation departs from `final_theory/paper.tex`, with the
 reason. Each needs a corresponding edit to the `.tex` in the post-implementation
 pass; the code is not bent to match a text bug.
 

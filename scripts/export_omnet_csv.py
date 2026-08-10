@@ -86,7 +86,15 @@ def uav_modules(run):
 def run_identity(run):
     """Fields repeated on every row so any table can be filtered or joined."""
     gs = gs_metrics(run)
-    suite = "spongent" if gs.get("suite", gs.get("hashMode", 0.0)) >= 0.5 else "sha3"
+    if "baselineSuite" in gs:
+        # RSA/ECDSA baseline (src/protocol/BaselineSigAuth.h): a DIFFERENT
+        # suite axis (signature scheme, not hash/AEAD suite). Labelling these
+        # "sha3" by the fallback below would silently pool their own X25519
+        # calls into the PUF protocol's sha3-suite primitive-cost rows even
+        # though neither ran the PUF protocol at all.
+        suite = "ecdsa-p256" if gs.get("baselineSuite", 0.0) >= 0.5 else "rsa2048"
+    else:
+        suite = "spongent" if gs.get("suite", gs.get("hashMode", 0.0)) >= 0.5 else "sha3"
     iv = run["itervars"]
     return {
         "run_id": run["run_id"] or Path(run["file"]).stem,
@@ -144,6 +152,12 @@ def build_phase2(run):
     gs = gs_metrics(run)
     rows = []
     for uav_id, module, m in uav_modules(run):
+        # Guard against non-PUF-protocol node types that happen to match the
+        # \.uav\[N\]$ module-path pattern (e.g. BaselineUavNode) but never
+        # record this scalar -- without this, every such module would emit an
+        # all-zero-fallback row here instead of correctly emitting none.
+        if "phase2Success" not in m:
+            continue
         g = "phase2Gs_uav_%d_" % uav_id
         compute = m.get("phase2ComputeMs", 0.0)
         net = m.get("phase2NetMs", 0.0)
@@ -324,6 +338,38 @@ RELIABILITY_COLS = (["idx"] + RID_COLS + [
     "rule_of_three_upper_failure"])
 
 
+MOBILITY_MODEL_NAMES = {0.0: "static", 1.0: "linear", 2.0: "randomwalk"}
+
+
+def build_mobility(run):
+    """Per-UAV mobility outcome: only emitted for runs with a mobility scalar."""
+    rid = run_identity(run)
+    rows = []
+    for uav_id, module, m in uav_modules(run):
+        if "mobilityModel" not in m:
+            continue
+        row = dict(rid)
+        row.update({
+            "uav_id": uav_id,
+            "mobility_model": MOBILITY_MODEL_NAMES.get(m.get("mobilityModel", 0.0), "unknown"),
+            "initial_xpos_m": round(m.get("initialXpos", 0.0), 6),
+            "initial_ypos_m": round(m.get("initialYpos", 0.0), 6),
+            "final_xpos_m": round(m.get("finalXpos", 0.0), 6),
+            "final_ypos_m": round(m.get("finalYpos", 0.0), 6),
+            "total_distance_traveled_m": round(m.get("totalDistanceTraveledM", 0.0), 6),
+            "phase2_wall_latency_ms": round(m.get("phase2_wall_latency_ms", 0.0), 6),
+            "details": "module=%s; config=%s" % (module, rid["config"]),
+        })
+        rows.append(row)
+    return rows
+
+
+MOBILITY_COLS = (["idx"] + RID_COLS + [
+    "uav_id", "mobility_model", "initial_xpos_m", "initial_ypos_m",
+    "final_xpos_m", "final_ypos_m", "total_distance_traveled_m",
+    "phase2_wall_latency_ms", "details"])
+
+
 # ---------------------------------------------------------------------------
 # Summary with confidence intervals
 # ---------------------------------------------------------------------------
@@ -445,7 +491,7 @@ def export(results_dir, include_configs=None):
     if not sca_files:
         raise FileNotFoundError("no .sca files in %s" % results_dir)
 
-    p1, p2, p3, prim, rel = [], [], [], [], []
+    p1, p2, p3, prim, rel, mob = [], [], [], [], [], []
     for path in sca_files:
         run = parse_sca(path)
         if include_configs and run["config"] not in include_configs:
@@ -455,13 +501,18 @@ def export(results_dir, include_configs=None):
         p3 += build_phase3(run)
         prim += build_primitives(run)
         rel += build_reliability(run)
+        mob += build_mobility(run)
 
-    if not p2 and not p3:
+    # Catches a genuinely empty/mistaken glob (wrong directory, typo'd config
+    # name); checking only p2/p3 would also reject a valid non-PUF-protocol
+    # export (e.g. the RSA/ECDSA baseline configs, which have real primitive
+    # and reliability data but no phase2/phase3 rows at all).
+    if not p1 and not p2 and not p3 and not prim and not rel:
         raise RuntimeError("no matching runs found (configs=%s)" % include_configs)
 
     # Assign idx once, globally, before any split file is written, so it stays a
     # stable join key everywhere.
-    for rows in (p1, p2, p3, prim, rel):
+    for rows in (p1, p2, p3, prim, rel, mob):
         assign_indices(rows)
 
     written = {}
@@ -472,6 +523,8 @@ def export(results_dir, include_configs=None):
                                       PRIMITIVE_COLS, prim)
     written["reliability"] = write_csv(results_dir / "omnet_reliability.csv",
                                       RELIABILITY_COLS, rel)
+    written["mobility"] = write_csv(results_dir / "omnet_mobility_results.csv",
+                                    MOBILITY_COLS, mob)
 
     summary_ci = build_summary_ci({"phase2": p2, "phase3": p3})
     written["summary_ci"] = write_csv(results_dir / "omnet_summary_ci.csv",

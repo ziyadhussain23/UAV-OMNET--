@@ -5,19 +5,19 @@ See the license for distribution terms and warranty disclaimer
 Setting up Cmdenv...
 
 Loading NED files from /home/md-ziyad-hussain/UAV-OMNET++/src:  5
-Loading NED files from /home/md-ziyad-hussain/UAV-OMNET++/simulations:  1
+Loading NED files from /home/md-ziyad-hussain/UAV-OMNET++/simulations:  2
 
 Preparing for running configuration StadiumSHA3, run #0...
-Assigned runID=StadiumSHA3-0-20260809-23:47:24-406373
+Assigned runID=StadiumSHA3-0-20260810-14:59:30-739766
 Setting up network "UavAuthNetwork"...
 Initializing...
 
 Running simulation...
-** Event #0   t=0   Elapsed: 1.3e-05s (0m 00s)  0% completed  (0% total)
+** Event #0   t=0   Elapsed: 1.2e-05s (0m 00s)  0% completed  (0% total)
      Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
      Messages:  created: 10   present: 10   in FES: 11
-** Event #196   t=300   Elapsed: 0.027908s (0m 00s)  100% completed  (10% total)
-     Speed:     ev/sec=7025.34   simsec/sec=1075.33   ev/simsec=6.53319
+** Event #196   t=300   Elapsed: 0.029283s (0m 00s)  100% completed  (3% total)
+     Speed:     ev/sec=6695.36   simsec/sec=1024.82   ev/simsec=6.53319
      Messages:  created: 195   present: 0   in FES: 0
 
 <!> Simulation time limit reached -- at t=300s, event #196
@@ -25,16 +25,16 @@ Running simulation...
 Calling finish() at end of Run #0...
 
 Preparing for running configuration StadiumSHA3, run #1...
-Assigned runID=StadiumSHA3-1-20260809-23:47:24-406373
+Assigned runID=StadiumSHA3-1-20260810-14:59:31-739766
 Setting up network "UavAuthNetwork"...
 Initializing...
 
 Running simulation...
-** Event #0   t=0   Elapsed: 4e-06s (0m 00s)  0% completed  (10% total)
+** Event #0   t=0   Elapsed: 6e-06s (0m 00s)  0% completed  (3% total)
      Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
      Messages:  created: 10   present: 10   in FES: 11
-** Event #196   t=300   Elapsed: 0.027069s (0m 00s)  100% completed  (20% total)
-     Speed:     ev/sec=7242.09   simsec/sec=1108.51   ev/simsec=6.53318
+** Event #196   t=300   Elapsed: 0.032106s (0m 00s)  100% completed  (6% total)
+     Speed:     ev/sec=6106.3   simsec/sec=934.659   ev/simsec=6.53318
      Messages:  created: 195   present: 0   in FES: 0
 
 <!> Simulation time limit reached -- at t=300s, event #196
@@ -42,16 +42,16 @@ Running simulation...
 Calling finish() at end of Run #1...
 
 Preparing for running configuration StadiumSHA3, run #2...
-Assigned runID=StadiumSHA3-2-20260809-23:47:24-406373
+Assigned runID=StadiumSHA3-2-20260810-14:59:31-739766
 Setting up network "UavAuthNetwork"...
 Initializing...
 
 Running simulation...
-** Event #0   t=0   Elapsed: 2e-06s (0m 00s)  0% completed  (20% total)
+** Event #0   t=0   Elapsed: 4e-06s (0m 00s)  0% completed  (6% total)
      Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
      Messages:  created: 10   present: 10   in FES: 11
-** Event #196   t=300   Elapsed: 0.027129s (0m 00s)  100% completed  (30% total)
-     Speed:     ev/sec=7226.34   simsec/sec=1106.1   ev/simsec=6.53319
+** Event #196   t=300   Elapsed: 0.028295s (0m 00s)  100% completed  (10% total)
+     Speed:     ev/sec=6928.49   simsec/sec=1060.51   ev/simsec=6.53319
      Messages:  created: 195   present: 0   in FES: 0
 
 <!> Simulation time limit reached -- at t=300s, event #196
@@ -59,16 +59,16 @@ Running simulation...
 Calling finish() at end of Run #2...
 
 Preparing for running configuration StadiumSHA3, run #3...
-Assigned runID=StadiumSHA3-3-20260809-23:47:24-406373
+Assigned runID=StadiumSHA3-3-20260810-14:59:31-739766
 Setting up network "UavAuthNetwork"...
 Initializing...
 
 Running simulation...
-** Event #0   t=0   Elapsed: 4e-06s (0m 00s)  0% completed  (30% total)
+** Event #0   t=0   Elapsed: 6e-06s (0m 00s)  0% completed  (10% total)
      Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
      Messages:  created: 10   present: 10   in FES: 11
-** Event #196   t=300   Elapsed: 0.028403s (0m 00s)  100% completed  (40% total)
-     Speed:     ev/sec=6902.38   simsec/sec=1056.51   ev/simsec=6.53319
+** Event #196   t=300   Elapsed: 0.027827s (0m 00s)  100% completed  (13% total)
+     Speed:     ev/sec=7045.29   simsec/sec=1078.39   ev/simsec=6.53319
      Messages:  created: 195   present: 0   in FES: 0
 
 <!> Simulation time limit reached -- at t=300s, event #196
@@ -76,16 +76,16 @@ Running simulation...
 Calling finish() at end of Run #3...
 
 Preparing for running configuration StadiumSHA3, run #4...
-Assigned runID=StadiumSHA3-4-20260809-23:47:24-406373
+Assigned runID=StadiumSHA3-4-20260810-14:59:31-739766
 Setting up network "UavAuthNetwork"...
 Initializing...
 
 Running simulation...
-** Event #0   t=0   Elapsed: 5e-06s (0m 00s)  0% completed  (40% total)
+** Event #0   t=0   Elapsed: 2e-06s (0m 00s)  0% completed  (13% total)
      Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
      Messages:  created: 10   present: 10   in FES: 11
-** Event #196   t=300   Elapsed: 0.02766s (0m 00s)  100% completed  (50% total)
-     Speed:     ev/sec=7087.58   simsec/sec=1084.86   ev/simsec=6.53319
+** Event #196   t=300   Elapsed: 0.028235s (0m 00s)  100% completed  (16% total)
+     Speed:     ev/sec=6943.46   simsec/sec=1062.8   ev/simsec=6.53319
      Messages:  created: 195   present: 0   in FES: 0
 
 <!> Simulation time limit reached -- at t=300s, event #196
@@ -93,16 +93,16 @@ Running simulation...
 Calling finish() at end of Run #4...
 
 Preparing for running configuration StadiumSHA3, run #5...
-Assigned runID=StadiumSHA3-5-20260809-23:47:24-406373
+Assigned runID=StadiumSHA3-5-20260810-14:59:31-739766
 Setting up network "UavAuthNetwork"...
 Initializing...
 
 Running simulation...
-** Event #0   t=0   Elapsed: 6e-06s (0m 00s)  0% completed  (50% total)
+** Event #0   t=0   Elapsed: 6e-06s (0m 00s)  0% completed  (16% total)
      Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
      Messages:  created: 10   present: 10   in FES: 11
-** Event #196   t=300   Elapsed: 0.027916s (0m 00s)  100% completed  (60% total)
-     Speed:     ev/sec=7023.08   simsec/sec=1074.98   ev/simsec=6.53319
+** Event #196   t=300   Elapsed: 0.027651s (0m 00s)  100% completed  (20% total)
+     Speed:     ev/sec=7090.4   simsec/sec=1085.29   ev/simsec=6.53319
      Messages:  created: 195   present: 0   in FES: 0
 
 <!> Simulation time limit reached -- at t=300s, event #196
@@ -110,16 +110,16 @@ Running simulation...
 Calling finish() at end of Run #5...
 
 Preparing for running configuration StadiumSHA3, run #6...
-Assigned runID=StadiumSHA3-6-20260809-23:47:24-406373
+Assigned runID=StadiumSHA3-6-20260810-14:59:31-739766
 Setting up network "UavAuthNetwork"...
 Initializing...
 
 Running simulation...
-** Event #0   t=0   Elapsed: 5e-06s (0m 00s)  0% completed  (60% total)
+** Event #0   t=0   Elapsed: 6e-06s (0m 00s)  0% completed  (20% total)
      Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
      Messages:  created: 10   present: 10   in FES: 11
-** Event #196   t=300   Elapsed: 0.027424s (0m 00s)  100% completed  (70% total)
-     Speed:     ev/sec=7148.33   simsec/sec=1094.16   ev/simsec=6.53319
+** Event #196   t=300   Elapsed: 0.028708s (0m 00s)  100% completed  (23% total)
+     Speed:     ev/sec=6829.27   simsec/sec=1045.32   ev/simsec=6.53319
      Messages:  created: 195   present: 0   in FES: 0
 
 <!> Simulation time limit reached -- at t=300s, event #196
@@ -127,16 +127,16 @@ Running simulation...
 Calling finish() at end of Run #6...
 
 Preparing for running configuration StadiumSHA3, run #7...
-Assigned runID=StadiumSHA3-7-20260809-23:47:24-406373
+Assigned runID=StadiumSHA3-7-20260810-14:59:31-739766
 Setting up network "UavAuthNetwork"...
 Initializing...
 
 Running simulation...
-** Event #0   t=0   Elapsed: 3e-06s (0m 00s)  0% completed  (70% total)
+** Event #0   t=0   Elapsed: 2e-06s (0m 00s)  0% completed  (23% total)
      Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
      Messages:  created: 10   present: 10   in FES: 11
-** Event #196   t=300   Elapsed: 0.026721s (0m 00s)  100% completed  (80% total)
-     Speed:     ev/sec=7336.15   simsec/sec=1122.91   ev/simsec=6.53318
+** Event #196   t=300   Elapsed: 0.027557s (0m 00s)  100% completed  (26% total)
+     Speed:     ev/sec=7113.82   simsec/sec=1088.88   ev/simsec=6.53318
      Messages:  created: 195   present: 0   in FES: 0
 
 <!> Simulation time limit reached -- at t=300s, event #196
@@ -144,16 +144,16 @@ Running simulation...
 Calling finish() at end of Run #7...
 
 Preparing for running configuration StadiumSHA3, run #8...
-Assigned runID=StadiumSHA3-8-20260809-23:47:25-406373
+Assigned runID=StadiumSHA3-8-20260810-14:59:31-739766
 Setting up network "UavAuthNetwork"...
 Initializing...
 
 Running simulation...
-** Event #0   t=0   Elapsed: 7e-06s (0m 00s)  0% completed  (80% total)
+** Event #0   t=0   Elapsed: 5e-06s (0m 00s)  0% completed  (26% total)
      Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
      Messages:  created: 10   present: 10   in FES: 11
-** Event #196   t=300   Elapsed: 0.027542s (0m 00s)  100% completed  (90% total)
-     Speed:     ev/sec=7118.47   simsec/sec=1089.59   ev/simsec=6.53319
+** Event #196   t=300   Elapsed: 0.027912s (0m 00s)  100% completed  (30% total)
+     Speed:     ev/sec=7023.58   simsec/sec=1075.06   ev/simsec=6.53319
      Messages:  created: 195   present: 0   in FES: 0
 
 <!> Simulation time limit reached -- at t=300s, event #196
@@ -161,22 +161,362 @@ Running simulation...
 Calling finish() at end of Run #8...
 
 Preparing for running configuration StadiumSHA3, run #9...
-Assigned runID=StadiumSHA3-9-20260809-23:47:25-406373
+Assigned runID=StadiumSHA3-9-20260810-14:59:31-739766
 Setting up network "UavAuthNetwork"...
 Initializing...
 
 Running simulation...
-** Event #0   t=0   Elapsed: 5e-06s (0m 00s)  0% completed  (90% total)
+** Event #0   t=0   Elapsed: 6e-06s (0m 00s)  0% completed  (30% total)
      Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
      Messages:  created: 10   present: 10   in FES: 11
-** Event #196   t=300   Elapsed: 0.027215s (0m 00s)  100% completed  (100% total)
-     Speed:     ev/sec=7203.5   simsec/sec=1102.6   ev/simsec=6.53319
+** Event #196   t=300   Elapsed: 0.031532s (0m 00s)  100% completed  (33% total)
+     Speed:     ev/sec=6217.49   simsec/sec=951.676   ev/simsec=6.53319
      Messages:  created: 195   present: 0   in FES: 0
 
 <!> Simulation time limit reached -- at t=300s, event #196
 
 Calling finish() at end of Run #9...
 
-Run statistics: total 10, successful 10
+Preparing for running configuration StadiumSHA3, run #10...
+Assigned runID=StadiumSHA3-10-20260810-14:59:31-739766
+Setting up network "UavAuthNetwork"...
+Initializing...
+
+Running simulation...
+** Event #0   t=0   Elapsed: 5e-06s (0m 00s)  0% completed  (33% total)
+     Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
+     Messages:  created: 10   present: 10   in FES: 11
+** Event #196   t=300   Elapsed: 0.028151s (0m 00s)  100% completed  (36% total)
+     Speed:     ev/sec=6964.18   simsec/sec=1065.97   ev/simsec=6.53319
+     Messages:  created: 195   present: 0   in FES: 0
+
+<!> Simulation time limit reached -- at t=300s, event #196
+
+Calling finish() at end of Run #10...
+
+Preparing for running configuration StadiumSHA3, run #11...
+Assigned runID=StadiumSHA3-11-20260810-14:59:31-739766
+Setting up network "UavAuthNetwork"...
+Initializing...
+
+Running simulation...
+** Event #0   t=0   Elapsed: 6e-06s (0m 00s)  0% completed  (36% total)
+     Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
+     Messages:  created: 10   present: 10   in FES: 11
+** Event #196   t=300   Elapsed: 0.028067s (0m 00s)  100% completed  (40% total)
+     Speed:     ev/sec=6985.03   simsec/sec=1069.16   ev/simsec=6.53319
+     Messages:  created: 195   present: 0   in FES: 0
+
+<!> Simulation time limit reached -- at t=300s, event #196
+
+Calling finish() at end of Run #11...
+
+Preparing for running configuration StadiumSHA3, run #12...
+Assigned runID=StadiumSHA3-12-20260810-14:59:31-739766
+Setting up network "UavAuthNetwork"...
+Initializing...
+
+Running simulation...
+** Event #0   t=0   Elapsed: 7e-06s (0m 00s)  0% completed  (40% total)
+     Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
+     Messages:  created: 10   present: 10   in FES: 11
+** Event #196   t=300   Elapsed: 0.02799s (0m 00s)  100% completed  (43% total)
+     Speed:     ev/sec=7004.5   simsec/sec=1072.14   ev/simsec=6.53319
+     Messages:  created: 195   present: 0   in FES: 0
+
+<!> Simulation time limit reached -- at t=300s, event #196
+
+Calling finish() at end of Run #12...
+
+Preparing for running configuration StadiumSHA3, run #13...
+Assigned runID=StadiumSHA3-13-20260810-14:59:31-739766
+Setting up network "UavAuthNetwork"...
+Initializing...
+
+Running simulation...
+** Event #0   t=0   Elapsed: 5e-06s (0m 00s)  0% completed  (43% total)
+     Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
+     Messages:  created: 10   present: 10   in FES: 11
+** Event #196   t=300   Elapsed: 0.029269s (0m 00s)  100% completed  (46% total)
+     Speed:     ev/sec=6698.11   simsec/sec=1025.24   ev/simsec=6.53319
+     Messages:  created: 195   present: 0   in FES: 0
+
+<!> Simulation time limit reached -- at t=300s, event #196
+
+Calling finish() at end of Run #13...
+
+Preparing for running configuration StadiumSHA3, run #14...
+Assigned runID=StadiumSHA3-14-20260810-14:59:31-739766
+Setting up network "UavAuthNetwork"...
+Initializing...
+
+Running simulation...
+** Event #0   t=0   Elapsed: 6e-06s (0m 00s)  0% completed  (46% total)
+     Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
+     Messages:  created: 10   present: 10   in FES: 11
+** Event #196   t=300   Elapsed: 0.028097s (0m 00s)  100% completed  (50% total)
+     Speed:     ev/sec=6977.82   simsec/sec=1068.06   ev/simsec=6.53319
+     Messages:  created: 195   present: 0   in FES: 0
+
+<!> Simulation time limit reached -- at t=300s, event #196
+
+Calling finish() at end of Run #14...
+
+Preparing for running configuration StadiumSHA3, run #15...
+Assigned runID=StadiumSHA3-15-20260810-14:59:31-739766
+Setting up network "UavAuthNetwork"...
+Initializing...
+
+Running simulation...
+** Event #0   t=0   Elapsed: 3e-06s (0m 00s)  0% completed  (50% total)
+     Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
+     Messages:  created: 10   present: 10   in FES: 11
+** Event #196   t=300   Elapsed: 0.027802s (0m 00s)  100% completed  (53% total)
+     Speed:     ev/sec=7051.63   simsec/sec=1079.35   ev/simsec=6.53319
+     Messages:  created: 195   present: 0   in FES: 0
+
+<!> Simulation time limit reached -- at t=300s, event #196
+
+Calling finish() at end of Run #15...
+
+Preparing for running configuration StadiumSHA3, run #16...
+Assigned runID=StadiumSHA3-16-20260810-14:59:31-739766
+Setting up network "UavAuthNetwork"...
+Initializing...
+
+Running simulation...
+** Event #0   t=0   Elapsed: 6e-06s (0m 00s)  0% completed  (53% total)
+     Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
+     Messages:  created: 10   present: 10   in FES: 11
+** Event #196   t=300   Elapsed: 0.029828s (0m 00s)  100% completed  (56% total)
+     Speed:     ev/sec=6572.55   simsec/sec=1006.02   ev/simsec=6.53319
+     Messages:  created: 195   present: 0   in FES: 0
+
+<!> Simulation time limit reached -- at t=300s, event #196
+
+Calling finish() at end of Run #16...
+
+Preparing for running configuration StadiumSHA3, run #17...
+Assigned runID=StadiumSHA3-17-20260810-14:59:31-739766
+Setting up network "UavAuthNetwork"...
+Initializing...
+
+Running simulation...
+** Event #0   t=0   Elapsed: 4e-06s (0m 00s)  0% completed  (56% total)
+     Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
+     Messages:  created: 10   present: 10   in FES: 11
+** Event #196   t=300   Elapsed: 0.027742s (0m 00s)  100% completed  (60% total)
+     Speed:     ev/sec=7066.63   simsec/sec=1081.65   ev/simsec=6.53319
+     Messages:  created: 195   present: 0   in FES: 0
+
+<!> Simulation time limit reached -- at t=300s, event #196
+
+Calling finish() at end of Run #17...
+
+Preparing for running configuration StadiumSHA3, run #18...
+Assigned runID=StadiumSHA3-18-20260810-14:59:31-739766
+Setting up network "UavAuthNetwork"...
+Initializing...
+
+Running simulation...
+** Event #0   t=0   Elapsed: 3e-06s (0m 00s)  0% completed  (60% total)
+     Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
+     Messages:  created: 10   present: 10   in FES: 11
+** Event #196   t=300   Elapsed: 0.027817s (0m 00s)  100% completed  (63% total)
+     Speed:     ev/sec=7047.82   simsec/sec=1078.77   ev/simsec=6.53319
+     Messages:  created: 195   present: 0   in FES: 0
+
+<!> Simulation time limit reached -- at t=300s, event #196
+
+Calling finish() at end of Run #18...
+
+Preparing for running configuration StadiumSHA3, run #19...
+Assigned runID=StadiumSHA3-19-20260810-14:59:31-739766
+Setting up network "UavAuthNetwork"...
+Initializing...
+
+Running simulation...
+** Event #0   t=0   Elapsed: 4e-06s (0m 00s)  0% completed  (63% total)
+     Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
+     Messages:  created: 10   present: 10   in FES: 11
+** Event #196   t=300   Elapsed: 0.028733s (0m 00s)  100% completed  (66% total)
+     Speed:     ev/sec=6822.37   simsec/sec=1044.26   ev/simsec=6.53318
+     Messages:  created: 195   present: 0   in FES: 0
+
+<!> Simulation time limit reached -- at t=300s, event #196
+
+Calling finish() at end of Run #19...
+
+Preparing for running configuration StadiumSHA3, run #20...
+Assigned runID=StadiumSHA3-20-20260810-14:59:31-739766
+Setting up network "UavAuthNetwork"...
+Initializing...
+
+Running simulation...
+** Event #0   t=0   Elapsed: 4e-06s (0m 00s)  0% completed  (66% total)
+     Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
+     Messages:  created: 10   present: 10   in FES: 11
+** Event #196   t=300   Elapsed: 0.028446s (0m 00s)  100% completed  (70% total)
+     Speed:     ev/sec=6891.7   simsec/sec=1054.88   ev/simsec=6.53319
+     Messages:  created: 195   present: 0   in FES: 0
+
+<!> Simulation time limit reached -- at t=300s, event #196
+
+Calling finish() at end of Run #20...
+
+Preparing for running configuration StadiumSHA3, run #21...
+Assigned runID=StadiumSHA3-21-20260810-14:59:31-739766
+Setting up network "UavAuthNetwork"...
+Initializing...
+
+Running simulation...
+** Event #0   t=0   Elapsed: 6e-06s (0m 00s)  0% completed  (70% total)
+     Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
+     Messages:  created: 10   present: 10   in FES: 11
+** Event #196   t=300   Elapsed: 0.027722s (0m 00s)  100% completed  (73% total)
+     Speed:     ev/sec=7073.51   simsec/sec=1082.7   ev/simsec=6.53319
+     Messages:  created: 195   present: 0   in FES: 0
+
+<!> Simulation time limit reached -- at t=300s, event #196
+
+Calling finish() at end of Run #21...
+
+Preparing for running configuration StadiumSHA3, run #22...
+Assigned runID=StadiumSHA3-22-20260810-14:59:31-739766
+Setting up network "UavAuthNetwork"...
+Initializing...
+
+Running simulation...
+** Event #0   t=0   Elapsed: 6e-06s (0m 00s)  0% completed  (73% total)
+     Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
+     Messages:  created: 10   present: 10   in FES: 11
+** Event #196   t=300   Elapsed: 0.027783s (0m 00s)  100% completed  (76% total)
+     Speed:     ev/sec=7056.45   simsec/sec=1080.09   ev/simsec=6.53319
+     Messages:  created: 195   present: 0   in FES: 0
+
+<!> Simulation time limit reached -- at t=300s, event #196
+
+Calling finish() at end of Run #22...
+
+Preparing for running configuration StadiumSHA3, run #23...
+Assigned runID=StadiumSHA3-23-20260810-14:59:32-739766
+Setting up network "UavAuthNetwork"...
+Initializing...
+
+Running simulation...
+** Event #0   t=0   Elapsed: 6e-06s (0m 00s)  0% completed  (76% total)
+     Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
+     Messages:  created: 10   present: 10   in FES: 11
+** Event #196   t=300   Elapsed: 0.029286s (0m 00s)  100% completed  (80% total)
+     Speed:     ev/sec=6694.45   simsec/sec=1024.68   ev/simsec=6.53319
+     Messages:  created: 195   present: 0   in FES: 0
+
+<!> Simulation time limit reached -- at t=300s, event #196
+
+Calling finish() at end of Run #23...
+
+Preparing for running configuration StadiumSHA3, run #24...
+Assigned runID=StadiumSHA3-24-20260810-14:59:32-739766
+Setting up network "UavAuthNetwork"...
+Initializing...
+
+Running simulation...
+** Event #0   t=0   Elapsed: 6e-06s (0m 00s)  0% completed  (80% total)
+     Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
+     Messages:  created: 10   present: 10   in FES: 11
+** Event #196   t=300   Elapsed: 0.031471s (0m 00s)  100% completed  (83% total)
+     Speed:     ev/sec=6229.74   simsec/sec=953.553   ev/simsec=6.53319
+     Messages:  created: 195   present: 0   in FES: 0
+
+<!> Simulation time limit reached -- at t=300s, event #196
+
+Calling finish() at end of Run #24...
+
+Preparing for running configuration StadiumSHA3, run #25...
+Assigned runID=StadiumSHA3-25-20260810-14:59:32-739766
+Setting up network "UavAuthNetwork"...
+Initializing...
+
+Running simulation...
+** Event #0   t=0   Elapsed: 4e-06s (0m 00s)  0% completed  (83% total)
+     Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
+     Messages:  created: 10   present: 10   in FES: 11
+** Event #196   t=300   Elapsed: 0.035897s (0m 00s)  100% completed  (86% total)
+     Speed:     ev/sec=5461.59   simsec/sec=835.976   ev/simsec=6.53319
+     Messages:  created: 195   present: 0   in FES: 0
+
+<!> Simulation time limit reached -- at t=300s, event #196
+
+Calling finish() at end of Run #25...
+
+Preparing for running configuration StadiumSHA3, run #26...
+Assigned runID=StadiumSHA3-26-20260810-14:59:32-739766
+Setting up network "UavAuthNetwork"...
+Initializing...
+
+Running simulation...
+** Event #0   t=0   Elapsed: 7e-06s (0m 00s)  0% completed  (86% total)
+     Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
+     Messages:  created: 10   present: 10   in FES: 11
+** Event #196   t=300   Elapsed: 0.032444s (0m 00s)  100% completed  (90% total)
+     Speed:     ev/sec=6042.67   simsec/sec=924.918   ev/simsec=6.53319
+     Messages:  created: 195   present: 0   in FES: 0
+
+<!> Simulation time limit reached -- at t=300s, event #196
+
+Calling finish() at end of Run #26...
+
+Preparing for running configuration StadiumSHA3, run #27...
+Assigned runID=StadiumSHA3-27-20260810-14:59:32-739766
+Setting up network "UavAuthNetwork"...
+Initializing...
+
+Running simulation...
+** Event #0   t=0   Elapsed: 6e-06s (0m 00s)  0% completed  (90% total)
+     Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
+     Messages:  created: 10   present: 10   in FES: 11
+** Event #196   t=300   Elapsed: 0.029529s (0m 00s)  100% completed  (93% total)
+     Speed:     ev/sec=6639.34   simsec/sec=1016.25   ev/simsec=6.53319
+     Messages:  created: 195   present: 0   in FES: 0
+
+<!> Simulation time limit reached -- at t=300s, event #196
+
+Calling finish() at end of Run #27...
+
+Preparing for running configuration StadiumSHA3, run #28...
+Assigned runID=StadiumSHA3-28-20260810-14:59:32-739766
+Setting up network "UavAuthNetwork"...
+Initializing...
+
+Running simulation...
+** Event #0   t=0   Elapsed: 5e-06s (0m 00s)  0% completed  (93% total)
+     Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
+     Messages:  created: 10   present: 10   in FES: 11
+** Event #196   t=300   Elapsed: 0.028314s (0m 00s)  100% completed  (96% total)
+     Speed:     ev/sec=6923.84   simsec/sec=1059.79   ev/simsec=6.53319
+     Messages:  created: 195   present: 0   in FES: 0
+
+<!> Simulation time limit reached -- at t=300s, event #196
+
+Calling finish() at end of Run #28...
+
+Preparing for running configuration StadiumSHA3, run #29...
+Assigned runID=StadiumSHA3-29-20260810-14:59:32-739766
+Setting up network "UavAuthNetwork"...
+Initializing...
+
+Running simulation...
+** Event #0   t=0   Elapsed: 4e-06s (0m 00s)  0% completed  (96% total)
+     Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
+     Messages:  created: 10   present: 10   in FES: 11
+** Event #196   t=300   Elapsed: 0.028767s (0m 00s)  100% completed  (100% total)
+     Speed:     ev/sec=6815.26   simsec/sec=1043.17   ev/simsec=6.53319
+     Messages:  created: 195   present: 0   in FES: 0
+
+<!> Simulation time limit reached -- at t=300s, event #196
+
+Calling finish() at end of Run #29...
+
+Run statistics: total 30, successful 30
 
 End.

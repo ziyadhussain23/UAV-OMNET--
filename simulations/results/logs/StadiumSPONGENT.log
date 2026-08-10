@@ -5,19 +5,19 @@ See the license for distribution terms and warranty disclaimer
 Setting up Cmdenv...
 
 Loading NED files from /home/md-ziyad-hussain/UAV-OMNET++/src:  5
-Loading NED files from /home/md-ziyad-hussain/UAV-OMNET++/simulations:  1
+Loading NED files from /home/md-ziyad-hussain/UAV-OMNET++/simulations:  2
 
 Preparing for running configuration StadiumSPONGENT, run #0...
-Assigned runID=StadiumSPONGENT-0-20260809-23:47:25-406405
+Assigned runID=StadiumSPONGENT-0-20260810-14:59:32-739851
 Setting up network "UavAuthNetwork"...
 Initializing...
 
 Running simulation...
-** Event #0   t=0   Elapsed: 1.2e-05s (0m 00s)  0% completed  (0% total)
+** Event #0   t=0   Elapsed: 1.7e-05s (0m 00s)  0% completed  (0% total)
      Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
      Messages:  created: 10   present: 10   in FES: 11
-** Event #196   t=300   Elapsed: 0.18614s (0m 00s)  100% completed  (10% total)
-     Speed:     ev/sec=1053.03   simsec/sec=161.182   ev/simsec=6.53319
+** Event #196   t=300   Elapsed: 0.189988s (0m 00s)  100% completed  (3% total)
+     Speed:     ev/sec=1031.71   simsec/sec=157.918   ev/simsec=6.53319
      Messages:  created: 195   present: 0   in FES: 0
 
 <!> Simulation time limit reached -- at t=300s, event #196
@@ -25,16 +25,16 @@ Running simulation...
 Calling finish() at end of Run #0...
 
 Preparing for running configuration StadiumSPONGENT, run #1...
-Assigned runID=StadiumSPONGENT-1-20260809-23:47:25-406405
+Assigned runID=StadiumSPONGENT-1-20260810-14:59:32-739851
 Setting up network "UavAuthNetwork"...
 Initializing...
 
 Running simulation...
-** Event #0   t=0   Elapsed: 7e-06s (0m 00s)  0% completed  (10% total)
+** Event #0   t=0   Elapsed: 8e-06s (0m 00s)  0% completed  (3% total)
      Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
      Messages:  created: 10   present: 10   in FES: 11
-** Event #196   t=300   Elapsed: 0.18304s (0m 00s)  100% completed  (20% total)
-     Speed:     ev/sec=1070.86   simsec/sec=163.91   ev/simsec=6.53318
+** Event #196   t=300   Elapsed: 0.187213s (0m 00s)  100% completed  (6% total)
+     Speed:     ev/sec=1046.99   simsec/sec=160.257   ev/simsec=6.53318
      Messages:  created: 195   present: 0   in FES: 0
 
 <!> Simulation time limit reached -- at t=300s, event #196
@@ -42,16 +42,16 @@ Running simulation...
 Calling finish() at end of Run #1...
 
 Preparing for running configuration StadiumSPONGENT, run #2...
-Assigned runID=StadiumSPONGENT-2-20260809-23:47:25-406405
+Assigned runID=StadiumSPONGENT-2-20260810-14:59:32-739851
 Setting up network "UavAuthNetwork"...
 Initializing...
 
 Running simulation...
-** Event #0   t=0   Elapsed: 5e-06s (0m 00s)  0% completed  (20% total)
+** Event #0   t=0   Elapsed: 5e-06s (0m 00s)  0% completed  (6% total)
      Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
      Messages:  created: 10   present: 10   in FES: 11
-** Event #196   t=300   Elapsed: 0.184797s (0m 00s)  100% completed  (30% total)
-     Speed:     ev/sec=1060.66   simsec/sec=162.35   ev/simsec=6.53319
+** Event #196   t=300   Elapsed: 0.186511s (0m 00s)  100% completed  (10% total)
+     Speed:     ev/sec=1050.92   simsec/sec=160.858   ev/simsec=6.53319
      Messages:  created: 195   present: 0   in FES: 0
 
 <!> Simulation time limit reached -- at t=300s, event #196
@@ -59,16 +59,16 @@ Running simulation...
 Calling finish() at end of Run #2...
 
 Preparing for running configuration StadiumSPONGENT, run #3...
-Assigned runID=StadiumSPONGENT-3-20260809-23:47:25-406405
+Assigned runID=StadiumSPONGENT-3-20260810-14:59:33-739851
 Setting up network "UavAuthNetwork"...
 Initializing...
 
 Running simulation...
-** Event #0   t=0   Elapsed: 3e-06s (0m 00s)  0% completed  (30% total)
+** Event #0   t=0   Elapsed: 5e-06s (0m 00s)  0% completed  (10% total)
      Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
      Messages:  created: 10   present: 10   in FES: 11
-** Event #196   t=300   Elapsed: 0.183008s (0m 00s)  100% completed  (40% total)
-     Speed:     ev/sec=1071.03   simsec/sec=163.937   ev/simsec=6.53319
+** Event #196   t=300   Elapsed: 0.185829s (0m 00s)  100% completed  (13% total)
+     Speed:     ev/sec=1054.78   simsec/sec=161.449   ev/simsec=6.53319
      Messages:  created: 195   present: 0   in FES: 0
 
 <!> Simulation time limit reached -- at t=300s, event #196
@@ -76,16 +76,16 @@ Running simulation...
 Calling finish() at end of Run #3...
 
 Preparing for running configuration StadiumSPONGENT, run #4...
-Assigned runID=StadiumSPONGENT-4-20260809-23:47:25-406405
+Assigned runID=StadiumSPONGENT-4-20260810-14:59:33-739851
 Setting up network "UavAuthNetwork"...
 Initializing...
 
 Running simulation...
-** Event #0   t=0   Elapsed: 2e-06s (0m 00s)  0% completed  (40% total)
+** Event #0   t=0   Elapsed: 6e-06s (0m 00s)  0% completed  (13% total)
      Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
      Messages:  created: 10   present: 10   in FES: 11
-** Event #196   t=300   Elapsed: 0.181914s (0m 00s)  100% completed  (50% total)
-     Speed:     ev/sec=1077.46   simsec/sec=164.921   ev/simsec=6.53319
+** Event #196   t=300   Elapsed: 0.185869s (0m 00s)  100% completed  (16% total)
+     Speed:     ev/sec=1054.55   simsec/sec=161.414   ev/simsec=6.53319
      Messages:  created: 195   present: 0   in FES: 0
 
 <!> Simulation time limit reached -- at t=300s, event #196
@@ -93,16 +93,16 @@ Running simulation...
 Calling finish() at end of Run #4...
 
 Preparing for running configuration StadiumSPONGENT, run #5...
-Assigned runID=StadiumSPONGENT-5-20260809-23:47:26-406405
+Assigned runID=StadiumSPONGENT-5-20260810-14:59:33-739851
 Setting up network "UavAuthNetwork"...
 Initializing...
 
 Running simulation...
-** Event #0   t=0   Elapsed: 2e-06s (0m 00s)  0% completed  (50% total)
+** Event #0   t=0   Elapsed: 2e-06s (0m 00s)  0% completed  (16% total)
      Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
      Messages:  created: 10   present: 10   in FES: 11
-** Event #196   t=300   Elapsed: 0.182908s (0m 00s)  100% completed  (60% total)
-     Speed:     ev/sec=1071.63   simsec/sec=164.029   ev/simsec=6.53319
+** Event #196   t=300   Elapsed: 0.183573s (0m 00s)  100% completed  (20% total)
+     Speed:     ev/sec=1067.72   simsec/sec=163.431   ev/simsec=6.53319
      Messages:  created: 195   present: 0   in FES: 0
 
 <!> Simulation time limit reached -- at t=300s, event #196
@@ -110,16 +110,16 @@ Running simulation...
 Calling finish() at end of Run #5...
 
 Preparing for running configuration StadiumSPONGENT, run #6...
-Assigned runID=StadiumSPONGENT-6-20260809-23:47:26-406405
+Assigned runID=StadiumSPONGENT-6-20260810-14:59:33-739851
 Setting up network "UavAuthNetwork"...
 Initializing...
 
 Running simulation...
-** Event #0   t=0   Elapsed: 2e-06s (0m 00s)  0% completed  (60% total)
+** Event #0   t=0   Elapsed: 4e-06s (0m 00s)  0% completed  (20% total)
      Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
      Messages:  created: 10   present: 10   in FES: 11
-** Event #196   t=300   Elapsed: 0.183259s (0m 00s)  100% completed  (70% total)
-     Speed:     ev/sec=1069.56   simsec/sec=163.712   ev/simsec=6.53319
+** Event #196   t=300   Elapsed: 0.186446s (0m 00s)  100% completed  (23% total)
+     Speed:     ev/sec=1051.28   simsec/sec=160.914   ev/simsec=6.53319
      Messages:  created: 195   present: 0   in FES: 0
 
 <!> Simulation time limit reached -- at t=300s, event #196
@@ -127,16 +127,16 @@ Running simulation...
 Calling finish() at end of Run #6...
 
 Preparing for running configuration StadiumSPONGENT, run #7...
-Assigned runID=StadiumSPONGENT-7-20260809-23:47:26-406405
+Assigned runID=StadiumSPONGENT-7-20260810-14:59:33-739851
 Setting up network "UavAuthNetwork"...
 Initializing...
 
 Running simulation...
-** Event #0   t=0   Elapsed: 6e-06s (0m 00s)  0% completed  (70% total)
+** Event #0   t=0   Elapsed: 6e-06s (0m 00s)  0% completed  (23% total)
      Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
      Messages:  created: 10   present: 10   in FES: 11
-** Event #196   t=300   Elapsed: 0.184825s (0m 00s)  100% completed  (80% total)
-     Speed:     ev/sec=1060.51   simsec/sec=162.327   ev/simsec=6.53318
+** Event #196   t=300   Elapsed: 0.187886s (0m 00s)  100% completed  (26% total)
+     Speed:     ev/sec=1043.24   simsec/sec=159.683   ev/simsec=6.53318
      Messages:  created: 195   present: 0   in FES: 0
 
 <!> Simulation time limit reached -- at t=300s, event #196
@@ -144,16 +144,16 @@ Running simulation...
 Calling finish() at end of Run #7...
 
 Preparing for running configuration StadiumSPONGENT, run #8...
-Assigned runID=StadiumSPONGENT-8-20260809-23:47:26-406405
+Assigned runID=StadiumSPONGENT-8-20260810-14:59:34-739851
 Setting up network "UavAuthNetwork"...
 Initializing...
 
 Running simulation...
-** Event #0   t=0   Elapsed: 2e-06s (0m 00s)  0% completed  (80% total)
+** Event #0   t=0   Elapsed: 5e-06s (0m 00s)  0% completed  (26% total)
      Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
      Messages:  created: 10   present: 10   in FES: 11
-** Event #196   t=300   Elapsed: 0.181766s (0m 00s)  100% completed  (90% total)
-     Speed:     ev/sec=1078.34   simsec/sec=165.056   ev/simsec=6.53319
+** Event #196   t=300   Elapsed: 0.184828s (0m 00s)  100% completed  (30% total)
+     Speed:     ev/sec=1060.49   simsec/sec=162.323   ev/simsec=6.53319
      Messages:  created: 195   present: 0   in FES: 0
 
 <!> Simulation time limit reached -- at t=300s, event #196
@@ -161,22 +161,362 @@ Running simulation...
 Calling finish() at end of Run #8...
 
 Preparing for running configuration StadiumSPONGENT, run #9...
-Assigned runID=StadiumSPONGENT-9-20260809-23:47:26-406405
+Assigned runID=StadiumSPONGENT-9-20260810-14:59:34-739851
 Setting up network "UavAuthNetwork"...
 Initializing...
 
 Running simulation...
-** Event #0   t=0   Elapsed: 2e-06s (0m 00s)  0% completed  (90% total)
+** Event #0   t=0   Elapsed: 2e-06s (0m 00s)  0% completed  (30% total)
      Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
      Messages:  created: 10   present: 10   in FES: 11
-** Event #196   t=300   Elapsed: 0.184349s (0m 00s)  100% completed  (100% total)
-     Speed:     ev/sec=1063.24   simsec/sec=162.744   ev/simsec=6.53319
+** Event #196   t=300   Elapsed: 0.185311s (0m 00s)  100% completed  (33% total)
+     Speed:     ev/sec=1057.76   simsec/sec=161.905   ev/simsec=6.53319
      Messages:  created: 195   present: 0   in FES: 0
 
 <!> Simulation time limit reached -- at t=300s, event #196
 
 Calling finish() at end of Run #9...
 
-Run statistics: total 10, successful 10
+Preparing for running configuration StadiumSPONGENT, run #10...
+Assigned runID=StadiumSPONGENT-10-20260810-14:59:34-739851
+Setting up network "UavAuthNetwork"...
+Initializing...
+
+Running simulation...
+** Event #0   t=0   Elapsed: 7e-06s (0m 00s)  0% completed  (33% total)
+     Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
+     Messages:  created: 10   present: 10   in FES: 11
+** Event #196   t=300   Elapsed: 0.184677s (0m 00s)  100% completed  (36% total)
+     Speed:     ev/sec=1061.36   simsec/sec=162.457   ev/simsec=6.53319
+     Messages:  created: 195   present: 0   in FES: 0
+
+<!> Simulation time limit reached -- at t=300s, event #196
+
+Calling finish() at end of Run #10...
+
+Preparing for running configuration StadiumSPONGENT, run #11...
+Assigned runID=StadiumSPONGENT-11-20260810-14:59:34-739851
+Setting up network "UavAuthNetwork"...
+Initializing...
+
+Running simulation...
+** Event #0   t=0   Elapsed: 7e-06s (0m 00s)  0% completed  (36% total)
+     Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
+     Messages:  created: 10   present: 10   in FES: 11
+** Event #196   t=300   Elapsed: 0.185997s (0m 00s)  100% completed  (40% total)
+     Speed:     ev/sec=1053.82   simsec/sec=161.302   ev/simsec=6.53319
+     Messages:  created: 195   present: 0   in FES: 0
+
+<!> Simulation time limit reached -- at t=300s, event #196
+
+Calling finish() at end of Run #11...
+
+Preparing for running configuration StadiumSPONGENT, run #12...
+Assigned runID=StadiumSPONGENT-12-20260810-14:59:34-739851
+Setting up network "UavAuthNetwork"...
+Initializing...
+
+Running simulation...
+** Event #0   t=0   Elapsed: 2e-06s (0m 00s)  0% completed  (40% total)
+     Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
+     Messages:  created: 10   present: 10   in FES: 11
+** Event #196   t=300   Elapsed: 0.187594s (0m 00s)  100% completed  (43% total)
+     Speed:     ev/sec=1044.84   simsec/sec=159.928   ev/simsec=6.53319
+     Messages:  created: 195   present: 0   in FES: 0
+
+<!> Simulation time limit reached -- at t=300s, event #196
+
+Calling finish() at end of Run #12...
+
+Preparing for running configuration StadiumSPONGENT, run #13...
+Assigned runID=StadiumSPONGENT-13-20260810-14:59:35-739851
+Setting up network "UavAuthNetwork"...
+Initializing...
+
+Running simulation...
+** Event #0   t=0   Elapsed: 6e-06s (0m 00s)  0% completed  (43% total)
+     Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
+     Messages:  created: 10   present: 10   in FES: 11
+** Event #196   t=300   Elapsed: 0.186196s (0m 00s)  100% completed  (46% total)
+     Speed:     ev/sec=1052.7   simsec/sec=161.131   ev/simsec=6.53319
+     Messages:  created: 195   present: 0   in FES: 0
+
+<!> Simulation time limit reached -- at t=300s, event #196
+
+Calling finish() at end of Run #13...
+
+Preparing for running configuration StadiumSPONGENT, run #14...
+Assigned runID=StadiumSPONGENT-14-20260810-14:59:35-739851
+Setting up network "UavAuthNetwork"...
+Initializing...
+
+Running simulation...
+** Event #0   t=0   Elapsed: 3e-06s (0m 00s)  0% completed  (46% total)
+     Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
+     Messages:  created: 10   present: 10   in FES: 11
+** Event #196   t=300   Elapsed: 0.183576s (0m 00s)  100% completed  (50% total)
+     Speed:     ev/sec=1067.72   simsec/sec=163.431   ev/simsec=6.53319
+     Messages:  created: 195   present: 0   in FES: 0
+
+<!> Simulation time limit reached -- at t=300s, event #196
+
+Calling finish() at end of Run #14...
+
+Preparing for running configuration StadiumSPONGENT, run #15...
+Assigned runID=StadiumSPONGENT-15-20260810-14:59:35-739851
+Setting up network "UavAuthNetwork"...
+Initializing...
+
+Running simulation...
+** Event #0   t=0   Elapsed: 6e-06s (0m 00s)  0% completed  (50% total)
+     Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
+     Messages:  created: 10   present: 10   in FES: 11
+** Event #196   t=300   Elapsed: 0.192721s (0m 00s)  100% completed  (53% total)
+     Speed:     ev/sec=1017.05   simsec/sec=155.675   ev/simsec=6.53319
+     Messages:  created: 195   present: 0   in FES: 0
+
+<!> Simulation time limit reached -- at t=300s, event #196
+
+Calling finish() at end of Run #15...
+
+Preparing for running configuration StadiumSPONGENT, run #16...
+Assigned runID=StadiumSPONGENT-16-20260810-14:59:35-739851
+Setting up network "UavAuthNetwork"...
+Initializing...
+
+Running simulation...
+** Event #0   t=0   Elapsed: 6e-06s (0m 00s)  0% completed  (53% total)
+     Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
+     Messages:  created: 10   present: 10   in FES: 11
+** Event #196   t=300   Elapsed: 0.19438s (0m 00s)  100% completed  (56% total)
+     Speed:     ev/sec=1008.38   simsec/sec=154.347   ev/simsec=6.53319
+     Messages:  created: 195   present: 0   in FES: 0
+
+<!> Simulation time limit reached -- at t=300s, event #196
+
+Calling finish() at end of Run #16...
+
+Preparing for running configuration StadiumSPONGENT, run #17...
+Assigned runID=StadiumSPONGENT-17-20260810-14:59:35-739851
+Setting up network "UavAuthNetwork"...
+Initializing...
+
+Running simulation...
+** Event #0   t=0   Elapsed: 6e-06s (0m 00s)  0% completed  (56% total)
+     Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
+     Messages:  created: 10   present: 10   in FES: 11
+** Event #196   t=300   Elapsed: 0.189673s (0m 00s)  100% completed  (60% total)
+     Speed:     ev/sec=1033.4   simsec/sec=158.177   ev/simsec=6.53319
+     Messages:  created: 195   present: 0   in FES: 0
+
+<!> Simulation time limit reached -- at t=300s, event #196
+
+Calling finish() at end of Run #17...
+
+Preparing for running configuration StadiumSPONGENT, run #18...
+Assigned runID=StadiumSPONGENT-18-20260810-14:59:36-739851
+Setting up network "UavAuthNetwork"...
+Initializing...
+
+Running simulation...
+** Event #0   t=0   Elapsed: 5e-06s (0m 00s)  0% completed  (60% total)
+     Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
+     Messages:  created: 10   present: 10   in FES: 11
+** Event #196   t=300   Elapsed: 0.187904s (0m 00s)  100% completed  (63% total)
+     Speed:     ev/sec=1043.12   simsec/sec=159.665   ev/simsec=6.53319
+     Messages:  created: 195   present: 0   in FES: 0
+
+<!> Simulation time limit reached -- at t=300s, event #196
+
+Calling finish() at end of Run #18...
+
+Preparing for running configuration StadiumSPONGENT, run #19...
+Assigned runID=StadiumSPONGENT-19-20260810-14:59:36-739851
+Setting up network "UavAuthNetwork"...
+Initializing...
+
+Running simulation...
+** Event #0   t=0   Elapsed: 6e-06s (0m 00s)  0% completed  (63% total)
+     Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
+     Messages:  created: 10   present: 10   in FES: 11
+** Event #196   t=300   Elapsed: 0.185969s (0m 00s)  100% completed  (66% total)
+     Speed:     ev/sec=1053.98   simsec/sec=161.328   ev/simsec=6.53318
+     Messages:  created: 195   present: 0   in FES: 0
+
+<!> Simulation time limit reached -- at t=300s, event #196
+
+Calling finish() at end of Run #19...
+
+Preparing for running configuration StadiumSPONGENT, run #20...
+Assigned runID=StadiumSPONGENT-20-20260810-14:59:36-739851
+Setting up network "UavAuthNetwork"...
+Initializing...
+
+Running simulation...
+** Event #0   t=0   Elapsed: 5e-06s (0m 00s)  0% completed  (66% total)
+     Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
+     Messages:  created: 10   present: 10   in FES: 11
+** Event #196   t=300   Elapsed: 0.185633s (0m 00s)  100% completed  (70% total)
+     Speed:     ev/sec=1055.89   simsec/sec=161.619   ev/simsec=6.53319
+     Messages:  created: 195   present: 0   in FES: 0
+
+<!> Simulation time limit reached -- at t=300s, event #196
+
+Calling finish() at end of Run #20...
+
+Preparing for running configuration StadiumSPONGENT, run #21...
+Assigned runID=StadiumSPONGENT-21-20260810-14:59:36-739851
+Setting up network "UavAuthNetwork"...
+Initializing...
+
+Running simulation...
+** Event #0   t=0   Elapsed: 5e-06s (0m 00s)  0% completed  (70% total)
+     Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
+     Messages:  created: 10   present: 10   in FES: 11
+** Event #196   t=300   Elapsed: 0.191418s (0m 00s)  100% completed  (73% total)
+     Speed:     ev/sec=1023.97   simsec/sec=156.734   ev/simsec=6.53319
+     Messages:  created: 195   present: 0   in FES: 0
+
+<!> Simulation time limit reached -- at t=300s, event #196
+
+Calling finish() at end of Run #21...
+
+Preparing for running configuration StadiumSPONGENT, run #22...
+Assigned runID=StadiumSPONGENT-22-20260810-14:59:37-739851
+Setting up network "UavAuthNetwork"...
+Initializing...
+
+Running simulation...
+** Event #0   t=0   Elapsed: 7e-06s (0m 00s)  0% completed  (73% total)
+     Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
+     Messages:  created: 10   present: 10   in FES: 11
+** Event #196   t=300   Elapsed: 0.18864s (0m 00s)  100% completed  (76% total)
+     Speed:     ev/sec=1039.07   simsec/sec=159.044   ev/simsec=6.53319
+     Messages:  created: 195   present: 0   in FES: 0
+
+<!> Simulation time limit reached -- at t=300s, event #196
+
+Calling finish() at end of Run #22...
+
+Preparing for running configuration StadiumSPONGENT, run #23...
+Assigned runID=StadiumSPONGENT-23-20260810-14:59:37-739851
+Setting up network "UavAuthNetwork"...
+Initializing...
+
+Running simulation...
+** Event #0   t=0   Elapsed: 2e-06s (0m 00s)  0% completed  (76% total)
+     Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
+     Messages:  created: 10   present: 10   in FES: 11
+** Event #196   t=300   Elapsed: 0.186035s (0m 00s)  100% completed  (80% total)
+     Speed:     ev/sec=1053.59   simsec/sec=161.268   ev/simsec=6.53319
+     Messages:  created: 195   present: 0   in FES: 0
+
+<!> Simulation time limit reached -- at t=300s, event #196
+
+Calling finish() at end of Run #23...
+
+Preparing for running configuration StadiumSPONGENT, run #24...
+Assigned runID=StadiumSPONGENT-24-20260810-14:59:37-739851
+Setting up network "UavAuthNetwork"...
+Initializing...
+
+Running simulation...
+** Event #0   t=0   Elapsed: 2e-06s (0m 00s)  0% completed  (80% total)
+     Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
+     Messages:  created: 10   present: 10   in FES: 11
+** Event #196   t=300   Elapsed: 0.188507s (0m 00s)  100% completed  (83% total)
+     Speed:     ev/sec=1039.79   simsec/sec=159.155   ev/simsec=6.53319
+     Messages:  created: 195   present: 0   in FES: 0
+
+<!> Simulation time limit reached -- at t=300s, event #196
+
+Calling finish() at end of Run #24...
+
+Preparing for running configuration StadiumSPONGENT, run #25...
+Assigned runID=StadiumSPONGENT-25-20260810-14:59:37-739851
+Setting up network "UavAuthNetwork"...
+Initializing...
+
+Running simulation...
+** Event #0   t=0   Elapsed: 5e-06s (0m 00s)  0% completed  (83% total)
+     Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
+     Messages:  created: 10   present: 10   in FES: 11
+** Event #196   t=300   Elapsed: 0.189624s (0m 00s)  100% completed  (86% total)
+     Speed:     ev/sec=1033.67   simsec/sec=158.218   ev/simsec=6.53319
+     Messages:  created: 195   present: 0   in FES: 0
+
+<!> Simulation time limit reached -- at t=300s, event #196
+
+Calling finish() at end of Run #25...
+
+Preparing for running configuration StadiumSPONGENT, run #26...
+Assigned runID=StadiumSPONGENT-26-20260810-14:59:37-739851
+Setting up network "UavAuthNetwork"...
+Initializing...
+
+Running simulation...
+** Event #0   t=0   Elapsed: 4e-06s (0m 00s)  0% completed  (86% total)
+     Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
+     Messages:  created: 10   present: 10   in FES: 11
+** Event #196   t=300   Elapsed: 0.1872s (0m 00s)  100% completed  (90% total)
+     Speed:     ev/sec=1047.05   simsec/sec=160.266   ev/simsec=6.53319
+     Messages:  created: 195   present: 0   in FES: 0
+
+<!> Simulation time limit reached -- at t=300s, event #196
+
+Calling finish() at end of Run #26...
+
+Preparing for running configuration StadiumSPONGENT, run #27...
+Assigned runID=StadiumSPONGENT-27-20260810-14:59:38-739851
+Setting up network "UavAuthNetwork"...
+Initializing...
+
+Running simulation...
+** Event #0   t=0   Elapsed: 6e-06s (0m 00s)  0% completed  (90% total)
+     Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
+     Messages:  created: 10   present: 10   in FES: 11
+** Event #196   t=300   Elapsed: 0.18884s (0m 00s)  100% completed  (93% total)
+     Speed:     ev/sec=1037.97   simsec/sec=158.876   ev/simsec=6.53319
+     Messages:  created: 195   present: 0   in FES: 0
+
+<!> Simulation time limit reached -- at t=300s, event #196
+
+Calling finish() at end of Run #27...
+
+Preparing for running configuration StadiumSPONGENT, run #28...
+Assigned runID=StadiumSPONGENT-28-20260810-14:59:38-739851
+Setting up network "UavAuthNetwork"...
+Initializing...
+
+Running simulation...
+** Event #0   t=0   Elapsed: 6e-06s (0m 00s)  0% completed  (93% total)
+     Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
+     Messages:  created: 10   present: 10   in FES: 11
+** Event #196   t=300   Elapsed: 0.190421s (0m 00s)  100% completed  (96% total)
+     Speed:     ev/sec=1029.35   simsec/sec=157.557   ev/simsec=6.53319
+     Messages:  created: 195   present: 0   in FES: 0
+
+<!> Simulation time limit reached -- at t=300s, event #196
+
+Calling finish() at end of Run #28...
+
+Preparing for running configuration StadiumSPONGENT, run #29...
+Assigned runID=StadiumSPONGENT-29-20260810-14:59:38-739851
+Setting up network "UavAuthNetwork"...
+Initializing...
+
+Running simulation...
+** Event #0   t=0   Elapsed: 5e-06s (0m 00s)  0% completed  (96% total)
+     Speed:     ev/sec=0   simsec/sec=0   ev/simsec=0
+     Messages:  created: 10   present: 10   in FES: 11
+** Event #196   t=300   Elapsed: 0.186639s (0m 00s)  100% completed  (100% total)
+     Speed:     ev/sec=1050.2   simsec/sec=160.749   ev/simsec=6.53319
+     Messages:  created: 195   present: 0   in FES: 0
+
+<!> Simulation time limit reached -- at t=300s, event #196
+
+Calling finish() at end of Run #29...
+
+Run statistics: total 30, successful 30
 
 End.
