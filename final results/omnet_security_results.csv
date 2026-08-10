@@ -1,0 +1,6 @@
+config,protocol_variant,attack,n_runs,attempts,accepted,oracle_replies,credentials_exposed,success_rate,success_wilson_lo,success_wilson_hi,runs_with_success,run_success_rate,run_success_wilson_lo,run_success_wilson_hi,expected_success,outcome_matches_expectation,observed_messages,devices_authenticated
+AtkCredentialSniff,hardened,credsniff,5,50,0,0,0,0.0,0.0,0.071350034,0,0.0,0.0,0.434491495,0,1,875,5
+AtkGsImpersonate,hardened,gsimpersonate,5,40,0,0,0,0.0,0.0,0.087624539,0,0.0,0.0,0.434491495,0,1,50,0
+AtkLegacyGsImpersonate,legacy,gsimpersonate,5,40,5,5,0,0.125,0.054594198,0.261124207,5,1.0,0.565508505,1.0,1,1,55,0
+AtkReplayM1,hardened,credsniff,5,50,0,0,0,0.0,0.0,0.071350034,0,0.0,0.0,0.434491495,0,1,875,5
+AtkReplayM1,hardened,replay,5,5,0,0,0,0.0,0.0,0.434491495,0,0.0,0.0,0.434491495,0,1,875,5

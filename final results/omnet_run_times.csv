@@ -1,6 +1,3 @@
-config,status,run_wallclock_ms,log_file,error
-Baseline,ok,159.791672,/home/md-ziyad-hussain/UAV-OMNET++/simulations/results/logs/Baseline.log,
-Swarm10,ok,324.132543,/home/md-ziyad-hussain/UAV-OMNET++/simulations/results/logs/Swarm10.log,
-Swarm20,ok,590.453303,/home/md-ziyad-hussain/UAV-OMNET++/simulations/results/logs/Swarm20.log,
-HighNoise,ok,157.224716,/home/md-ziyad-hussain/UAV-OMNET++/simulations/results/logs/HighNoise.log,
-MobilityPlaceholder,ok,159.67504,/home/md-ziyad-hussain/UAV-OMNET++/simulations/results/logs/MobilityPlaceholder.log,
+config,status,run_wallclock_ms,log_file,error,cmd,started_at_iso,finished_at_iso,host,cpu_model,openssl_version,omnetpp_version,git_commit,dirty
+BaselineRSA,ok,17931.16,/home/md-ziyad-hussain/UAV-OMNET++/simulations/results/logs/BaselineRSA.log,,/home/md-ziyad-hussain/UAV-OMNET++/src/uavauthsim -u Cmdenv -n /home/md-ziyad-hussain/UAV-OMNET++/src;/home/md-ziyad-hussain/UAV-OMNET++/simulations -f /home/md-ziyad-hussain/UAV-OMNET++/simulations/omnetpp.ini -c BaselineRSA,2026-08-10T16:20:00,2026-08-10T16:20:18,ziyad,AMD Ryzen 5 5625U with Radeon Graphics,OpenSSL 3.5.5 27 Jan 2026 (Library: OpenSSL 3.5.5 27 Jan 2026),OMNeT++ Discrete Event Simulation  (C) 1992-2025 Andras Varga  OpenSim Ltd.,0e415cb,1
+BaselineECDSA,ok,294.572,/home/md-ziyad-hussain/UAV-OMNET++/simulations/results/logs/BaselineECDSA.log,,/home/md-ziyad-hussain/UAV-OMNET++/src/uavauthsim -u Cmdenv -n /home/md-ziyad-hussain/UAV-OMNET++/src;/home/md-ziyad-hussain/UAV-OMNET++/simulations -f /home/md-ziyad-hussain/UAV-OMNET++/simulations/omnetpp.ini -c BaselineECDSA,2026-08-10T16:20:18,2026-08-10T16:20:18,ziyad,AMD Ryzen 5 5625U with Radeon Graphics,OpenSSL 3.5.5 27 Jan 2026 (Library: OpenSSL 3.5.5 27 Jan 2026),OMNeT++ Discrete Event Simulation  (C) 1992-2025 Andras Varga  OpenSim Ltd.,0e415cb,1
