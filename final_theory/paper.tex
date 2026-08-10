@@ -144,10 +144,9 @@ and man-in-the-middle resistance, physical-capture resistance, session-key
 secrecy, and perfect forward secrecy, each reduced to standard assumptions and
 mirrored by a symbolic model in the Tamarin prover. A reference implementation in
 OMNeT++~6.3 authenticates all $600$~UAVs and all $11{,}400$ peer pairs of a
-twenty-drone swarm across thirty repetitions, at $1.50 \pm 0.002$~ms per
-UAV--GS handshake and $0.417 \pm 0.001$~ms per peer pair, with every primitive
-checked against published
-reference values. Executed attacks confirm the analysis: forged ground-station
+twenty-drone swarm across thirty repetitions, at a simulated elapsed time of
+$1.50 \pm 0.002$~ms per UAV--GS handshake and $0.417 \pm 0.001$~ms per peer
+pair, with every primitive checked against published reference values. Executed attacks confirm the analysis: forged ground-station
 messages draw no response, whereas the same adversary succeeds against a control
 variant with the ground-station check removed, so the negative result is
 falsifiable. Measured on the same host as RSA-2048 and elliptic-curve
@@ -829,7 +828,7 @@ function of $R$ that pins $R$ to a coset of the $[n,k]$ code $\mathsf{C}$;
 revealing that coset fixes at most $n-k$ syndrome bits, so by the chain rule for
 average min-entropy $\widetilde{H}_\infty(R\mid s)\ge \widetilde{H}_\infty(R)-(n-k)$, and the seed is
 independent of $R$. Applying the strong-extractor property to the residual
-source gives a key within distance $\varepsilon$ of uniform. \hfill$\square$
+source gives a key within distance $\varepsilon$ of uniform. \qed
 \end{proof}
 
 \subsection{Phase~2: Mutual Authentication}
@@ -854,7 +853,7 @@ secret, so a fresh valid $\sigma_2$ is again a forgery.
 A nonce collision that could enable transcript reuse occurs with probability at
 most $q^2/2^{128}$ for $q$ sessions. Absent forgery and collision, the two
 accepting parties share identical fields in $M_1$ and $M_2$, i.e.\ they agree on
-$\mathcal{T}$. \hfill$\square$
+$\mathcal{T}$. \qed
 \end{proof}
 
 \begin{corollary}[No PUF read-out oracle]
@@ -869,7 +868,7 @@ verifies, which by Theorem~\ref{thm:mutual_auth} an adversary can force only by
 forging a MAC. When the check fails the UAV sends nothing; when it passes, the
 only value on the wire is $\sigma_3$, a MAC over public transcript fields---the
 PUF response is consumed inside $\mathsf{Rep}$ and is never transmitted. Hence
-no challenge--response pair is exposed. \hfill$\square$
+no challenge--response pair is exposed. \qed
 \end{proof}
 
 \subsection{Replay Attack Resistance}
@@ -887,7 +886,7 @@ type tag ($\texttt{M1},\dots,\texttt{P3}$), so a token from one step cannot be
 accepted at another. Third, from the second message onward each MAC binds the
 partner's nonce, so a token from one session cannot be reused in another without
 producing a mismatch---which, by Theorems~\ref{thm:mutual_auth}
-and~\ref{thm:peer_auth}, would require a forgery. \hfill$\square$
+and~\ref{thm:peer_auth}, would require a forgery. \qed
 \end{proof}
 
 \subsection{Phase~3: Peer Mutual Authentication}
@@ -909,7 +908,7 @@ $K^{ij}_{\text{auth}}$; each binds both identities and both nonces, so a fresh
 acceptance forces a matching computation by the partner---otherwise an EUF-CMA
 forgery. Because credentials are pair-specific, a third party holding some other
 $\text{Cred}_{k\ell}$ has no information about $\text{Cred}_{ij}$ and cannot
-assert identity $i$ to $j$. \hfill$\square$
+assert identity $i$ to $j$. \qed
 \end{proof}
 
 \subsection{Man-in-the-Middle Resistance}
@@ -928,7 +927,7 @@ field invalidates the covering tag, and forging a new tag requires the secret
 key (EUF-CMA / INT-CTXT). By the agreement guarantees of
 Theorems~\ref{thm:mutual_auth} and~\ref{thm:peer_auth}, both endpoints therefore
 hold the identical transcript, so an interposed adversary cannot sit undetected
-between them. \hfill$\square$
+between them. \qed
 \end{proof}
 
 \subsection{Session-Key Secrecy and Forward Secrecy}
@@ -948,7 +947,7 @@ the Diffie--Hellman secret $g^{xy}$. Modelling the KDF as a pseudorandom
 function, replacing it by a random function is undetectable up to its PRF
 advantage; the input $g^{xy}$ is unpredictable under gap-CDH given only the
 authenticated shares $g^{x},g^{y}$. Hence the output is uniform up to negligible
-terms. \hfill$\square$
+terms. \qed
 \end{proof}
 
 \begin{theorem}[Perfect forward secrecy]
@@ -964,7 +963,7 @@ scalars $x,y$. The key of Eq.~\eqref{eq:sk_unified} still depends on $g^{xy}$,
 which the adversary must now compute from the recorded, authenticated shares
 $g^{x},g^{y}$---a gap-CDH instance. Because the ephemeral exchange is mandatory,
 there is no non-ephemeral key to fall back on. Hence past keys remain
-indistinguishable from uniform. \hfill$\square$
+indistinguishable from uniform. \qed
 \end{proof}
 
 \subsection{Physical Capture Resistance}
@@ -987,7 +986,7 @@ a pair $(m,\ell)$ with $k\notin\{m,\ell\}$ needs
 $\text{Cred}_{m\ell}=\mathsf{KDF}(\text{mk}_{\text{GS}};\cdot)$, which is
 independent of every captured $\text{Cred}_{kj}$ (distinct KDF inputs, and
 $\text{mk}_{\text{GS}}$ never leaves the GS). Only pairs that include $k$ share a
-captured credential, giving the stated $N-1$ exposure. \hfill$\square$
+captured credential, giving the stated $N-1$ exposure. \qed
 \end{proof}
 
 \subsection{Symbolic Verification}
@@ -1302,6 +1301,61 @@ All node parameters are declared with defaults and are therefore overridable fro
 the configuration file, and statistics are declared so that both scalar and vector
 outputs are recorded.
 
+\subsection{Evaluation scenarios}
+\label{subsec:scenarios}
+
+Every scenario in Section~\ref{sec:results} changes exactly one variable relative
+to the reference configuration \texttt{StadiumSHA3} and holds everything else
+fixed, so that a difference in outcome can be attributed to that one variable
+rather than to a confound. Table~\ref{tab:scenarios} lists all seventeen
+configurations, the single variable each isolates, and which table or figure
+reports its result, so the purpose of every run in the evaluation is stated in
+one place rather than left implicit.
+
+\begin{table}[H]
+\centering
+\caption{Every evaluation scenario, the variable it isolates, and where its
+result is reported}
+\label{tab:scenarios}
+\footnotesize
+\begin{tabular}{@{}p{2.7cm}p{4.6cm}p{5.4cm}p{1.6cm}@{}}
+\toprule
+\textbf{Scenario} & \textbf{Variable isolated} & \textbf{Question it answers} & \textbf{Reported in} \\
+\midrule
+\texttt{StadiumSHA3} & reference point: $N{=}10$, software-oriented suite & What does the protocol cost under its default, intended deployment? & Tab.~\ref{tab:functional}--\ref{tab:latency} \\
+\texttt{StadiumSPONGENT} & crypto suite (\texttt{sha3} $\rightarrow$ \texttt{spongent}), $N$ unchanged & Does swapping to the hardware-oriented suite change correctness, and by how much does it change cost? & Tab.~\ref{tab:functional}--\ref{tab:latency} \\
+\texttt{Baseline5UAV} & swarm size, $N{=}5$ & Lower end of the scaling curve & Tab.~\ref{tab:functional}--\ref{tab:latency} \\
+\texttt{Swarm20} & swarm size, $N{=}20$ & Upper end of the scaling curve; does per-pair Phase~3 cost stay flat as pair count grows to $190$? & Tab.~\ref{tab:functional}--\ref{tab:latency} \\
+\texttt{ArbiterPuf} & PUF model, idealised $\rightarrow$ physically-realistic additive-delay model, $3\%$ native BER & Does the protocol still function against a PUF model with real timing-race noise rather than an idealised stand-in? & Tab.~\ref{tab:functional} \\
+\texttt{HighNoise} & PUF bit-error rate forced to $5\%$ & Where does reliability start to degrade, and how is that degradation reported honestly (device never authenticates, rather than authenticates incorrectly)? & Tab.~\ref{tab:functional} \\
+\texttt{NoiseSweep} & BER swept $1$--$10\%$ across three fuzzy-extractor profiles & Does the measured key-reproduction failure rate track the analytic binomial prediction, i.e.\ is the BCH decoder genuinely correcting errors? & Tab.~\ref{tab:noise}, Fig.~\ref{fig:reliability} \\
+\texttt{MobilityLinear} & UAV motion: constant velocity, boundary bounce & Does physical movement disturb the protocol's timing or correctness? & Tab.~\ref{tab:mobility} \\
+\texttt{MobilityRandomWalk} & UAV motion: random heading redrawn every $100$~ms & Cross-check of the mobility finding under a second, statistically different motion pattern & Tab.~\ref{tab:mobility} \\
+\texttt{Inet80211SHA3} & network layer: idealised delay $\rightarrow$ real IEEE~802.11 CSMA/CA, \texttt{sha3} suite & What does genuine MAC-layer contention add to the idealised lower bound? & Tab.~\ref{tab:inet} \\
+\texttt{Inet80211SPONGENT} & network layer as above, \texttt{spongent} suite & Confirms the contention cost is suite-independent & Tab.~\ref{tab:inet} \\
+\texttt{BaselineRSA} & authentication mechanism: PUF-derived MAC $\rightarrow$ RSA-2048-signed ephemeral DH, same simulator & Fair, full-protocol comparison against a real PKI competitor & Tab.~\ref{tab:baseline_comparison} \\
+\texttt{BaselineECDSA} & authentication mechanism: PUF-derived MAC $\rightarrow$ ECDSA-P256-signed ephemeral DH, same simulator & Fair, full-protocol comparison against a real ECC competitor & Tab.~\ref{tab:baseline_comparison} \\
+\texttt{AtkGsImpersonate} & adversary present: forged ground-station challenge & Does a fraudulent GS elicit a reply from an honest UAV? & Tab.~\ref{tab:attacks} \\
+\texttt{AtkLegacyGsImpersonate} & same attacker, verify-before-respond (P3) disabled & Negative control: does the same attacker succeed once the one relevant defence is removed? & Tab.~\ref{tab:attacks} \\
+\texttt{AtkReplayM1} & adversary present: captured $M_1$ replayed inside the freshness window & Does the nonce cache reject a verbatim replay that the timestamp window alone would admit? & Tab.~\ref{tab:attacks} \\
+\texttt{AtkCredentialSniff} & adversary present: passive read of $M_4$'s credential package & Does authenticated encryption keep the per-pair credential confidential in transit? & Tab.~\ref{tab:attacks} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Grouped by purpose, the seventeen scenarios fall into five families: a
+\emph{reference and suite pair} (\texttt{StadiumSHA3}, \texttt{StadiumSPONGENT}),
+a \emph{scaling triple} together with the reference
+(\texttt{Baseline5UAV}, \texttt{StadiumSHA3}, \texttt{Swarm20}, at $N{=}5,10,20$),
+a \emph{reliability family} (\texttt{ArbiterPuf}, \texttt{HighNoise},
+\texttt{NoiseSweep}) that separately stresses PUF realism and PUF noise, a
+\emph{deployment-realism pair} (mobility and INET) that each bracket one
+simplification of the idealised model, and a \emph{security family} of four
+attack configurations built around one negative control. No scenario duplicates
+another's variable: the two mobility models and the two INET suites are kept
+deliberately minimal precisely because \S\ref{subsec:mobility} and
+\S\ref{subsec:inet} show their outcomes agree with each other to within
+confidence interval, which is itself part of the finding, not an omission.
 
 % ══════════════════════════════════════════════════════════════
 % SECTION: EVALUATION
@@ -1375,17 +1429,29 @@ separately below.
 \subsection{Latency and communication cost}
 \label{subsec:latency}
 
-Table~\ref{tab:latency} reports end-to-end latency in simulated time, together
-with its compute and network components.
+Table~\ref{tab:latency} reports the Phase-2 handshake's simulated elapsed time,
+together with its compute and network components. These three columns are
+\emph{not} one figure split into two: Compute and Network are independent
+measurements on two different clocks (host wall-clock timers for Compute,
+the simulator's own clock for Network), and adding them gives the total a real
+device would pay if it ran the two costs back to back --- a figure this paper
+uses explicitly in \S\ref{subsec:baseline_comparison}, never silently. Simulated
+elapsed is the third, separate quantity: the OMNeT++ simulation clock's own
+start-to-finish reading for the handshake, which does not advance while host
+compute time is being measured, so it is close to the Network column and
+systematically smaller than Compute$+$Network.
 
 \begin{table}[H]
 \centering
-\caption{Phase-2 latency and overhead (mean $\pm$ 95\% CI, thirty runs)}
+\caption{Phase-2 latency and overhead (mean $\pm$ 95\% CI, thirty runs).
+\emph{Simulated elapsed} is the simulator-clock reading for the whole
+handshake, not Compute$+$Network --- see \S\ref{subsec:latency} for why the
+three columns do not sum}
 \label{tab:latency}
 \small
 \begin{tabular}{@{}lcccc@{}}
 \toprule
-\textbf{Configuration} & \textbf{End-to-end (ms)} & \textbf{Compute (ms)} &
+\textbf{Configuration} & \textbf{Simulated elapsed (ms)} & \textbf{Compute (ms)} &
 \textbf{Network (ms)} & \textbf{Overhead (B)} \\
 \midrule
 StadiumSHA3     & $1.5028 \pm 0.0023$ & $1.6024 \pm 0.0322$ & $1.0737 \pm 0.0020$ & $777$ \\
@@ -1410,6 +1476,110 @@ Phase-2 overhead grows with $N$ because the credential package delivered in $M_4
 carries one per-pair credential per peer. At $N=10$ it is $545$~bytes of the
 $777$-byte total; at $N=20$ it dominates. An on-demand variant issuing credentials
 per request is a straightforward extension where this matters.
+
+\subsection{Message-by-message breakdown}
+\label{subsec:message_breakdown}
+
+Table~\ref{tab:latency} reports Phase~2 as three summary numbers. This still
+obscures where the time actually goes: the four messages $M_1$--$M_4$ do very
+different amounts of work, and the two suites diverge sharply on some of them
+while agreeing almost exactly on others. Table~\ref{tab:msgbreakdown} splits the
+handshake into its four messages under \texttt{StadiumSHA3} and
+\texttt{StadiumSPONGENT}, reporting the compute time on each side, the network
+delay, and the wire size, all averaged over the full thirty-run, three-hundred-UAV
+sample per suite.
+
+\begin{table}[H]
+\centering
+\caption{Phase-2 message-by-message breakdown, \texttt{StadiumSHA3} versus
+\texttt{StadiumSPONGENT} (mean over 30 runs $\times$ 10 UAVs $=$ 300 handshakes
+per suite)}
+\label{tab:msgbreakdown}
+\small
+\begin{tabular}{@{}p{1.1cm}p{5.0cm}rrrr@{}}
+\toprule
+\textbf{Msg.} & \textbf{What it does} & \textbf{\texttt{sha3} (ms)} &
+\textbf{\texttt{spongent} (ms)} & \textbf{Net.\ (ms)} & \textbf{Size (B)} \\
+\midrule
+$M_1$ & UAV: PUF eval.\ + \texttt{Rep} + MAC $\sigma_1$ (sender compute) & $1.4330$ & $1.9891$ & $0.2554$ & $104$ \\
+      & \quad of which: PUF evaluation & $1.1532$ & $1.1317$ & --- & --- \\
+      & \quad of which: BCH decode & $0.2068$ & $0.4915$ & --- & --- \\
+      & GS: MAC $\sigma_1$ verify (receiver compute) & $0.0503$ & $0.5859$ & --- & --- \\
+$M_2$ & UAV: MAC $\sigma_2$ verify (verify-before-respond gate) & $0.0799$ & $1.1683$ & $0.2303$ & $85$ \\
+$M_3$ & UAV: MAC $\sigma_3$ compute (sender compute) & $0.0799$ & $1.1683$ & $0.1737$ & $43$ \\
+      & GS: MAC $\sigma_3$ verify $+$ session-key KDF (receiver compute) & $0.1352$ & $2.3811$ & --- & --- \\
+$M_4$ & GS: AEAD-seal credential package (sender compute) & $0.0102$ & $0.1277$ & $0.8433$ & $545$/$549$ \\
+\midrule
+\textbf{Total} & & $\mathbf{1.6024}$ & $\mathbf{4.4533}$ & $\mathbf{1.0737}$/$\mathbf{1.0790}$ & $\mathbf{777}$/$\mathbf{781}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Three things stand out that the summary figures in Table~\ref{tab:latency}
+do not show on their own.
+
+\textbf{$M_1$ is disproportionately expensive for a structural reason, not a
+performance one.} Table~\ref{tab:msgbreakdown}'s own rows show that $69$--$71\%$
+of $M_1$'s compute time under either suite is the PUF evaluation and BCH
+reproduction (\emph{deviation \#1} of the specification: the paper's phase
+ordering implies \texttt{Rep} runs at $M_3$, but the UAV needs $\text{mk}_i$ to
+authenticate $M_1$ itself, so \texttt{Rep} necessarily runs before $M_1$ is
+sent). This is why $M_1$, not $M_3$ where the paper's narrative places the key
+regeneration, carries the PUF cost in the measured breakdown.
+
+\textbf{Network delay is identical across suites, compute is not.} All four
+messages' network delays match to four significant figures between
+\texttt{sha3} and \texttt{spongent}, because the link-delay model
+(\S\ref{subsec:simmodel}) depends only on message size and node position, neither
+of which the suite changes materially. Every millisecond of the $1.6$~ms
+versus $4.5$~ms compute gap is therefore attributable to the cryptographic suite
+alone, not to any difference in the network path.
+
+\textbf{The suite gap concentrates in $M_2$ and $M_3$, not $M_1$ or $M_4$.} $M_2$
+and $M_3$ each perform one MAC operation with no PUF or AEAD work alongside it,
+so they show the suite gap almost in isolation: \texttt{spongent}'s keyed sponge
+costs roughly $14$--$15\times$ \texttt{sha3}'s HMAC on these two messages, consistent
+with the $228~\mu$s-versus-$2.2~\mu$s per-call gap in
+Table~\ref{tab:primitives}. $M_1$'s gap is compressed by the shared PUF cost sitting
+alongside the MAC call, and $M_4$'s AEAD-only cost barely differs between suites at
+all, since Ascon-128a is not slower than ChaCha20-Poly1305 in this implementation.
+
+\subsection{Phase-3 message-by-message breakdown}
+\label{subsec:phase3_breakdown}
+
+Table~\ref{tab:p3breakdown} performs the same decomposition for the three-message
+peer handshake, again under both suites, pooled over every pair in
+\texttt{StadiumSHA3}/\texttt{StadiumSPONGENT} ($2{,}700$ pair-views per suite).
+
+\begin{table}[H]
+\centering
+\caption{Phase-3 message-by-message breakdown, \texttt{StadiumSHA3} versus
+\texttt{StadiumSPONGENT} (mean over 2{,}700 pair-views per suite)}
+\label{tab:p3breakdown}
+\small
+\begin{tabular}{@{}p{1.1cm}p{5.4cm}rrr@{}}
+\toprule
+\textbf{Msg.} & \textbf{What it does} & \textbf{\texttt{sha3} (ms)} &
+\textbf{\texttt{spongent} (ms)} & \textbf{Net.\ (ms)} \\
+\midrule
+$P_1$ & UAV$_i$: MAC $\tau_1$ compute (initiator) & $0.0223$ & $0.1645$ & $0.1214$ \\
+$P_2$ & UAV$_j$: MAC $\tau_1$ verify $+$ MAC $\tau_2$ compute (responder) & $0.0239$ & $0.2791$ & $0.1107$ \\
+$P_3$ & UAV$_i$: MAC $\tau_2$ verify $+$ MAC $\tau_3$ compute $+$ session KDF (initiator) & $0.0402$ & $0.5241$ & $0.0743$ \\
+\midrule
+\textbf{Total (compute $+$ net)} & & $\mathbf{0.417}$ & $\mathbf{1.372}$ & \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Two points follow. First, no Phase-3 message touches the PUF or the fuzzy
+extractor at all --- every microsecond in this table is a MAC, a KDF, or an
+ephemeral Diffie--Hellman operation on the already-delivered credential
+$\text{Cred}_{ij}$ --- which is why Phase-3 latency ($0.417$~ms, \texttt{sha3}) is
+roughly a third of Phase-2's ($1.503$~ms): Phase~3 never re-pays the PUF cost
+that dominates $M_1$. Second, the \texttt{spongent} suite's Phase-3 total
+($1.372$~ms) is $3.3\times$ \texttt{sha3}'s, a larger relative gap than Phase-2's
+$2.96\times$ ($5.4$ against $1.6$~ms of compute), because Phase~3 has no PUF or
+AEAD cost to dilute the three consecutive MAC calls that dominate the exchange.
 
 \subsection{Primitive Costs: This Work versus Public-Key Baselines}
 \label{subsec:baselines}
@@ -1470,7 +1640,7 @@ simulated handshake versus a 2000-iteration tight loop --- not two different
 implementations. The benchmarked figure is used wherever this work's X25519
 cost is compared against the ECDH/ECDSA rows below, since only figures taken
 under identical tight-loop conditions are directly comparable; the in-protocol
-figure is used when accounting for the measured end-to-end latency of
+figure is used when accounting for the measured Compute column of
 Table~\ref{tab:latency}.
 
 $^{\ddagger}$Unlike every other row in this block, Hash is \emph{not} measured
@@ -1592,13 +1762,15 @@ module.
 \begin{table}[H]
 \centering
 \caption{Full-protocol latency and overhead, RSA/ECDSA baselines versus this
-work (mean $\pm$ 95\% CI, thirty runs each). Compute and Network are reported
-on the same convention as Table~\ref{tab:latency}}
+work (mean $\pm$ 95\% CI, thirty runs each). Simulated elapsed, Compute, and
+Network are reported on the same convention as Table~\ref{tab:latency}; the
+realistic total used in the discussion below is Compute$+$Network, not the
+Simulated elapsed column}
 \label{tab:baseline_comparison}
 \small
 \begin{tabular}{@{}p{3.6cm}cccc@{}}
 \toprule
-\textbf{Protocol} & \textbf{End-to-end (ms)} & \textbf{Compute (ms)} &
+\textbf{Protocol} & \textbf{Simulated elapsed (ms)} & \textbf{Compute (ms)} &
 \textbf{Network (ms)} & \textbf{Overhead (B)} \\
 \midrule
 RSA-2048-signed ephemeral DH & $1.4042 \pm 0.0023$ & $1.3558 \pm 0.2129$ & $0.6990 \pm 0.0020$ & $703$ \\
@@ -1813,7 +1985,7 @@ recomputed, not cached, at the moment each message is sent.
 \begin{tabular}{@{}lccc@{}}
 \toprule
 \textbf{Mobility model} & \textbf{Speed} & \textbf{Mean distance travelled} &
-\textbf{Phase-2 end-to-end (ms)} \\
+\textbf{Phase-2 simulated elapsed (ms)} \\
 \midrule
 Linear      & $8$~m/s & $2398.7$~m (of $2400$~m theoretical) & $1.5026 \pm 0.0023$ \\
 Random walk & $8$~m/s & $2396.2$~m (of $2400$~m theoretical) & $1.5028 \pm 0.0023$ \\
@@ -1861,7 +2033,7 @@ thirty runs each}
 \small
 \begin{tabular}{@{}lccc@{}}
 \toprule
-\textbf{Configuration} & \textbf{End-to-end (ms)} & \textbf{Success} & \textbf{vs.\ idealised medium} \\
+\textbf{Configuration} & \textbf{Simulated elapsed (ms)} & \textbf{Success} & \textbf{vs.\ idealised medium} \\
 \midrule
 Inet80211SHA3     & $11.722 \pm 0.408$ & $298/300$ & $7.8\times$ \\
 Inet80211SPONGENT & $11.744 \pm 0.409$ & $298/300$ & $7.8\times$ \\
@@ -2038,8 +2210,9 @@ resource constraints of aerial platforms.
 
 A reference implementation on OMNeT++~6.3 (\S\ref{sec:implementation}) supports
 these claims with measurement. All $600$ UAVs and all $11{,}400$ peer pairs of a
-twenty-drone swarm authenticate, at $1.50 \pm 0.002$~ms per UAV--GS handshake and
-$0.417 \pm 0.001$~ms per peer pair over thirty independent repetitions. Every
+twenty-drone swarm authenticate, at a simulated elapsed time of
+$1.50 \pm 0.002$~ms per UAV--GS handshake and $0.417 \pm 0.001$~ms per peer
+pair over thirty independent repetitions. Every
 primitive is validated against published reference values, including all $1{,}089$
 official Ascon-128a test vectors, and the fuzzy extractor's measured failure rate
 tracks its binomial prediction across four orders of magnitude --- the evidence
