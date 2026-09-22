@@ -126,6 +126,52 @@ inline void requireValidBitCount(size_t bitCount) {
         throw std::invalid_argument("PUF: response length exceeds 65536 bits");
 }
 
+/// Sub-challenges for a whole response as a counter-mode stream:
+///   block_ctr = SHA3-256(label || u16be(len(C)) || C || u16be(ctr)),
+/// concatenated; bytes [16j, 16j+16) are the sub-challenge for response bit j.
+/// Two SHA3-256 calls (32 bytes each) cover four sub-challenges, which is where
+/// the per-bit SHA3-256 of deriveSubChallenge used to spend essentially all of
+/// its time.
+///
+/// The label and the challenge length are absorbed alongside the challenge, so
+/// the stream is a distinct function from any other SHA3 output and two
+/// different-length challenges can never share a stream prefix.
+inline Bytes subStream(const Bytes& challenge, size_t count) {
+    requireValidBitCount(count);
+    if (challenge.size() > 0xFFFFu)
+        throw std::invalid_argument("PUF: challenge exceeds 65535 bytes");
+    const size_t need = 16 * count;
+    Bytes out;
+    if (need == 0) return out;
+    out.reserve(need);
+
+    static const unsigned char kLabel[] = "uavauth/v1/puf/subchallenge-stream";
+    const unsigned char clen[2] = {static_cast<unsigned char>(challenge.size() >> 8),
+                                   static_cast<unsigned char>(challenge.size() & 0xFF)};
+    static thread_local detail::MdCtxHolder holder;
+    EVP_MD_CTX* ctx = holder.ctx;
+    if (ctx == nullptr) crypto::throwOsslError("PUF: EVP_MD_CTX_new");
+
+    for (uint16_t ctr = 0; out.size() < need; ++ctr) {
+        const unsigned char cbuf[2] = {static_cast<unsigned char>(ctr >> 8),
+                                       static_cast<unsigned char>(ctr & 0xFF)};
+        unsigned char digest[EVP_MAX_MD_SIZE];
+        unsigned int dlen = 0;
+        const bool ok =
+            EVP_DigestInit_ex(ctx, crypto::OsslCommon::instance().sha3_256(), nullptr) == 1 &&
+            EVP_DigestUpdate(ctx, kLabel, sizeof(kLabel) - 1) == 1 &&
+            EVP_DigestUpdate(ctx, clen, sizeof(clen)) == 1 &&
+            (challenge.empty() ||
+             EVP_DigestUpdate(ctx, challenge.data(), challenge.size()) == 1) &&
+            EVP_DigestUpdate(ctx, cbuf, sizeof(cbuf)) == 1 &&
+            EVP_DigestFinal_ex(ctx, digest, &dlen) == 1;
+        if (!ok) crypto::throwOsslError("PUF: sub-challenge SHA3-256");
+        out.insert(out.end(), digest, digest + dlen);
+    }
+    out.resize(need);
+    return out;
+}
+
 } // namespace puf
 } // namespace uavauth
 

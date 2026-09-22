@@ -59,7 +59,9 @@ Bytes refSha3(const Bytes& input) {
     return Bytes(out, out + outLen);
 }
 
-Bytes refHmacSha3(const Bytes& key, const Bytes& msg) {
+/// HMAC-SHA3-256, fresh fetch and context per call: the slow reference the
+/// model's own response stream is checked against.
+Bytes refHmac(const Bytes& key, const Bytes& msg) {
     EVP_MAC* mac = EVP_MAC_fetch(nullptr, "HMAC", nullptr);
     EVP_MAC_CTX* ctx = EVP_MAC_CTX_new(mac);
     char digest[] = "SHA3-256";
@@ -69,7 +71,7 @@ Bytes refHmacSha3(const Bytes& key, const Bytes& msg) {
     unsigned char tag[EVP_MAX_MD_SIZE];
     size_t tagLen = 0;
     EVP_MAC_init(ctx, key.data(), key.size(), params);
-    EVP_MAC_update(ctx, msg.data(), msg.size());
+    if (!msg.empty()) EVP_MAC_update(ctx, msg.data(), msg.size());
     EVP_MAC_final(ctx, tag, &tagLen, sizeof(tag));
     EVP_MAC_CTX_free(ctx);
     EVP_MAC_free(mac);
@@ -128,6 +130,19 @@ void testSubChallenge() {
         expected.resize(16);
         CHECK(deriveSubChallenge(c, j) == expected);
     }
+
+    // The streamed form the hot paths use: one squeeze, 16 bytes per bit,
+    // deterministic, distinct per index and per challenge.
+    const Bytes stream = subStream(c, 512);
+    CHECK_EQ(stream.size(), 512u * 16u);
+    CHECK(subStream(c, 0).empty());
+    CHECK(subStream(c, 4) == subStream(c, 4));
+    CHECK(subStream(fromString("challenge-1"), 4) != subStream(c, 4));
+    seen.clear();
+    for (size_t j = 0; j < 512; ++j)
+        seen.insert(toHex(Bytes(stream.begin() + static_cast<long>(16 * j),
+                                stream.begin() + static_cast<long>(16 * (j + 1)))));
+    CHECK_EQ(seen.size(), 512u);
 }
 
 /// The models are defined by a formula, not by whatever their code happens to
@@ -137,21 +152,33 @@ void testModelDefinitions() {
     const Bytes challenge = fromString("definition-challenge");
     const size_t bits = 64;
 
-    // IdealPrfPuf: bit j = MSB of HMAC-SHA3-256(key, subChallenge_j), with
-    // key = SHA3-256("uavauth/v1/puf/ideal-prf-key" || seed). This also checks
-    // the model's re-keyed-context fast path against a fresh context per call.
+    // IdealPrfPuf: the whole response is a counter-mode HMAC-SHA3-256 stream,
+    //   block_ctr = HMAC(key, label || challenge || u16be(ctr)),
+    // concatenated and truncated, with label "uavauth/v1/puf/ideal-prf-response"
+    // and key = SHA3-256("uavauth/v1/puf/ideal-prf-key" || seed). Recomputed
+    // here the slow way, fresh fetch and context per block, so the check is
+    // against the definition and not against the model's own code path.
     Bytes keyInput = fromString("uavauth/v1/puf/ideal-prf-key");
     keyInput.insert(keyInput.end(), seed.begin(), seed.end());
     const Bytes key = refSha3(keyInput);
 
     IdealPrfPuf prf(seed);
     const Bytes prfResponse = prf.evaluateIdeal(challenge, bits);
-    int prfMismatch = 0;
-    for (size_t j = 0; j < bits; ++j) {
-        const Bytes tag = refHmacSha3(key, deriveSubChallenge(challenge, static_cast<uint16_t>(j)));
-        if (getBit(prfResponse, j) != getBit(tag, 0)) ++prfMismatch;
+    Bytes prfExpected;
+    const Bytes respLabel = fromString("uavauth/v1/puf/ideal-prf-response");
+    for (uint16_t ctr = 0; prfExpected.size() < bytesForBits(bits); ++ctr) {
+        Bytes msg = respLabel;
+        msg.insert(msg.end(), challenge.begin(), challenge.end());
+        const Bytes cbuf = u16be(ctr);
+        msg.insert(msg.end(), cbuf.begin(), cbuf.end());
+        const Bytes block = refHmac(key, msg);
+        prfExpected.insert(prfExpected.end(), block.begin(), block.end());
     }
-    CHECK_MSG(prfMismatch == 0, "ideal-prf response is not HMAC-SHA3-256(deviceKey, subC_j)");
+    prfExpected.resize(bytesForBits(bits));
+    if ((bits & 7) != 0)
+        prfExpected.back() = static_cast<unsigned char>(prfExpected.back() & (0xFFu << (8 - (bits & 7))));
+    CHECK_MSG(prfResponse == prfExpected,
+              "ideal-prf response is not the counter-mode HMAC-SHA3-256 stream");
 
     // ArbiterPuf: Delta = sum_i w[i]*phi[i] + w[128] with
     // phi[i] = prod_{k=i..127}(1-2c[k]), response bit = (Delta > 0). The
@@ -160,10 +187,12 @@ void testModelDefinitions() {
     ArbiterPuf arb(seed);
     const std::vector<double>& w = arb.weights();
     const Bytes arbResponse = arb.evaluateIdeal(challenge, bits);
+    const Bytes subs = subStream(challenge, bits);
     int arbMismatch = 0;
     double maxDeltaError = 0.0;
     for (size_t j = 0; j < bits; ++j) {
-        const Bytes sub = deriveSubChallenge(challenge, static_cast<uint16_t>(j));
+        const Bytes sub(subs.begin() + static_cast<long>(16 * j),
+                        subs.begin() + static_cast<long>(16 * (j + 1)));
         std::vector<double> phi(ArbiterPuf::kStages + 1, 1.0);
         for (size_t i = 0; i < ArbiterPuf::kStages; ++i) {
             double product = 1.0;
@@ -195,7 +224,8 @@ void testModelDefinitions() {
     const Bytes xorResponse = xorDevice.evaluateIdeal(challenge, bits);
     int xorMismatch = 0;
     for (size_t j = 0; j < bits; ++j) {
-        const Bytes sub = deriveSubChallenge(challenge, static_cast<uint16_t>(j));
+        const Bytes sub(subs.begin() + static_cast<long>(16 * j),
+                        subs.begin() + static_cast<long>(16 * (j + 1)));
         bool bit = false;
         for (int c = 0; c < xorDevice.chains(); ++c)
             bit ^= (xorDevice.chain(c).deltaForSubChallenge(sub) > 0.0);

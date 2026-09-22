@@ -62,6 +62,11 @@ class ArbiterPuf : public PufModel {
     /// distribution of |Delta|.
     double deltaForSubChallenge(const Bytes& subChallenge) const;
 
+    /// The same computation on a raw 128-bit sub-challenge pointer, with no
+    /// length check: the hot evaluation path calls this on 16-byte slices of a
+    /// single squeezed stream, where per-call validation would be pure overhead.
+    double deltaForSubChallengeRaw(const uint8_t* sub16) const;
+
     /// Delay differences for response bits 0..bitCount-1 of `challenge`.
     void computeDeltas(const Bytes& challenge, size_t bitCount,
                        std::vector<double>& out) const;

@@ -1,0 +1,434 @@
+/*
+  Symbolic model of the four-phase PUF-based UAV authentication protocol.
+  Tamarin prover, multiset-rewriting / Dolev-Yao.
+
+  Run:  tamarin-prover --prove formal/tamarin/uav_puf_auth.spthy
+
+  WHAT IS PROVED HERE, AND WHAT IS NOT
+  -------------------------------------
+  This model carries the *protocol-level* claims of the security analysis:
+  mutual authentication in Phase 2 and Phase 3, replay resistance, session-key
+  secrecy, perfect forward secrecy, and physical-capture isolation. It does not,
+  and cannot, carry the computational claims, and the paper says so:
+
+   - The PUF is idealised as a private per-device function. Concretely, a device
+     holds a secret `si` and puf(si, ch) is the response. The function symbol is
+     public, so the secrecy of the response rests entirely on `si` never being
+     revealed. That is the symbolic image of "the response is unpredictable
+     without the device, and probing destroys it".
+   - Helper data `hd` is a public value with no symbolic link to the response.
+     This encodes Lemma 1 (helper-data privacy): the sketch discloses at most
+     n-k bits, which the residual min-entropy argument plus the extractor turn
+     into a key. Tamarin cannot reproduce that counting argument, so the model
+     *assumes* its conclusion rather than proving it. The assumption is exactly
+     the computational lemma, and it is cited as such in the paper.
+   - Hash output length (SHA3-256 truncated to 160 bits versus SPONGENT-160) is
+     invisible here: both are an ideal h/1. Collision resistance is a
+     computational claim and is not carried by this model.
+   - AEAD is the ideal symmetric-encryption operator: confidentiality and
+     integrity are assumed, not derived.
+
+  Long-term compromise is modelled explicitly, not assumed away. `Reveal_ltk`
+  emits a device's silicon secret and `Reveal_gs_master` the ground-station
+  master key; `Capture_device` emits the captured node's non-volatile memory,
+  which is public identities, public helper data, and the per-pair credentials
+  actually delivered to that node. Every agreement lemma is conditioned on the
+  compromise that would legitimately defeat it, so the conditions are visible in
+  the model rather than hidden in the prose.
+
+  TWO THINGS THE IDEAL THEORY MAKES WEAKER THAN THE PAPER'S THEOREMS
+  ------------------------------------------------------------------
+  Both are consequences of the builtin equational theories, not of the protocol,
+  and both are stated where they bite:
+
+   - `diffie-hellman` is *ideal*: g^(ab) is reachable only by holding a or b, and
+     no rule emits either ephemeral scalar. Session-key lemmas are therefore
+     satisfied outright, and the disjunctions in `session_key_secrecy` and
+     `forward_secrecy` are strict weakenings included to mirror the paper's
+     conditioned statements. The real content of Theorems 4 and 5 -- that a
+     post-session reveal does not unlock a past key because gap-CDH protects the
+     erased scalars -- is the computational argument, not this model.
+   - `symmetric-encryption` is the ideal operator. Ciphertext integrity is
+     built in, so `p2_agreement_gs` cannot be falsified by manipulating the M4
+     package. `p3_initiator_delegates_own_credential` recovers the missing piece
+     by reasoning about the credential that is actually issued and consumed,
+     which is what the paper's capture theorem needs.
+
+  The peer lemmas were also repaired against the implementation: Phase 3 now
+  keys on the credential the node was issued (a 3-place fact) rather than on a
+  free variable, session keys carry their owner so the key-secrecy lemmas are
+  meaningful, M4 carries the rotated identity inside the AEAD as the code does,
+  and the type-tag lemma is stated as an ordering between the two peer
+  acceptance facts instead of a role-swapped pseudo-exclusion that the protocol
+  could never satisfy.
+*/
+
+theory UavPufAuth
+begin
+
+builtins: hashing, diffie-hellman, symmetric-encryption
+
+functions: mac/2, kdf/2, puf/2
+
+/* ======================================================================== */
+/* Phase 1: enrollment, in a secure facility over a trusted channel          */
+/* ======================================================================== */
+
+rule Setup_gs_master:
+  [ Fr(~mkgs) ]
+  --[ ]->
+  [ !Gsmk(~mkgs) ]
+
+/*
+  One device. `si` is the silicon secret; it is the only item that is neither
+  transmitted nor stored in the ground-station database entry the model exports.
+  `ch` is the public challenge block, `hd` the public helper data. All three
+  public items are emitted, so the adversary starts out knowing everything a
+  capture of this device would yield except the credentials.
+*/
+rule Enroll_device:
+  [ Fr(~si), Fr(~tid), Fr(~ch), Fr(~hd) ]
+  --[ Enrolled($D), LtkSecret($D, puf(~si, ~ch)) ]->
+  [ !Dev($D, ~tid, ~si, ~ch, ~hd),
+    !Db($D, ~tid, ~si, ~ch, ~hd),
+    Out(<'enroll', ~tid, ~ch, ~hd>) ]
+
+/*
+  Pair credential. The implementation derives Cred_ij = KDF(mk_GS; pair-cred ||
+  min(i,j) || max(i,j)), which is one secret per *unordered* pair. Tamarin has no
+  ordering on names, so the rule publishes the same term in both orientations,
+  which is the symbolic counterpart of the min/max canonicalisation. Each
+  instance yields one credential; the mirrored instance yields a second, and a
+  session that happens to mix them simply fails to verify its MAC, which is a
+  liveness question and not a security one.
+*/
+rule Setup_pair_credential:
+  [ !Gsmk(mkgs), !Db($A, ta, sa, ca, ha), !Db($B, tb, sb, cb, hb) ]
+  --[ PairCred($A, $B, kdf(mkgs, <'paircred', $A, $B>)) ]->
+  [ !Cred($A, $B, kdf(mkgs, <'paircred', $A, $B>)),
+    !Cred($B, $A, kdf(mkgs, <'paircred', $A, $B>)) ]
+
+/* ======================================================================== */
+/* Phase 2: UAV <-> ground station                                          */
+/* ======================================================================== */
+
+rule P2_M1_uav_request:
+  let mk = puf(si, ch)
+      ka = kdf(mk, 'p2auth')
+      ga = 'g'^~a
+  in
+  [ !Dev($I, tid, si, ch, hd), Fr(~a), Fr(~n1), Fr(~t1) ]
+  --[ P2UavM1($I, ~n1, ga) ]->
+  [ Out(<'m1', tid, ~n1, ~t1, ga, mac(ka, <'m1', tid, ~n1, ~t1, ga>)>),
+    St2M1($I, tid, si, ch, ~a, ~n1, ~t1, ga) ]
+
+rule P2_M2_gs_reply:
+  let mk = puf(si, ch)
+      ka = kdf(mk, 'p2auth')
+      gb = 'g'^~b
+  in
+  [ !Db($I, tid, si, ch, hd),
+    In(<'m1', tid, n1, t1, ga, mac(ka, <'m1', tid, n1, t1, ga>)>),
+    Fr(~b), Fr(~n2), Fr(~t2) ]
+  --[ P2GsReply($I, n1, ~n2, ga, gb) ]->
+  [ Out(<'m2', ~n2, ~t2, gb, mac(ka, <'m2', tid, n1, ~n2, ~t2, ga, gb>)>),
+    St2M2($I, tid, si, ch, ~b, n1, t1, ga, ~n2, ~t2, gb) ]
+
+/*
+  Verify-before-respond. The device emits M3 only when the incoming M2 carries a
+  tag that verifies under ka, so a party that cannot compute ka elicits nothing.
+  Note that the raw response never appears in either conclusion.
+*/
+rule P2_M3_uav_confirm:
+  let mk = puf(si, ch)
+      ka = kdf(mk, 'p2auth')
+      tr = <'m1', tid, n1, t1, ga, 'm2', n2, t2, gb>
+      sk = kdf(<mk, gb^a, <tid, n1, t1, ga, n2, t2, gb>>, 'p2sess')
+  in
+  [ St2M1($I, tid, si, ch, a, n1, t1, ga),
+    In(<'m2', n2, t2, gb, mac(ka, <'m2', tid, n1, n2, t2, ga, gb>)>) ]
+  --[ P2UavAccept($I, n1, n2, ga, gb), Secret($I, sk) ]->
+  [ Out(<'m3', mac(ka, <'m3', tr>)>) ]
+
+/*
+  M4 carries the rotated identity inside the AEAD, as the implementation does
+  (docs/spec-deviations.md item 2): the plaintext is <'credpkg', tid, cred, tid'>, so
+  an attacker cannot desynchronise the identity without breaking the ciphertext.
+
+  The rule also needs a peer device to exist, because a credential package is a
+  package *of pairs*. That does not restrict the Phase-2 lemmas: those are
+  universally quantified over the device, and `Enroll_device` may be applied any
+  number of times, so a second device is always available to any candidate
+  counterexample trace.
+*/
+rule P2_M4_gs_confirm:
+  let mk = puf(si, ch)
+      ka = kdf(mk, 'p2auth')
+      tr = <'m1', tid, n1, t1, ga, 'm2', n2, t2, gb>
+      sk = kdf(<mk, ga^b, <tid, n1, t1, ga, n2, t2, gb>>, 'p2sess')
+  in
+  [ St2M2($I, tid, si, ch, b, n1, t1, ga, n2, t2, gb),
+    !Cred($I, $J, cred),
+    !Db($J, tidj, sj, cj, hj),
+    In(<'m3', mac(ka, <'m3', tr>)>) ]
+  --[ P2GsAccept($I, n1, n2, ga, gb), Secret($I, sk),
+      CredDelivered($I, $J, cred) ]->
+  [ Out(<'m4', senc(<'credpkg', tid, cred, h(<tid, mk, n1, n2>)>, sk)>),
+    !GotCred($I, $J, cred) ]
+
+/* ======================================================================== */
+/* Phase 3: UAV <-> UAV, no ground-station involvement                      */
+/* ======================================================================== */
+
+rule P3_P1_peer_request:
+  let kaij = kdf(cred, 'peerauth')
+      ga = 'g'^~x
+  in
+  [ !GotCred($I, $J, cred), Fr(~x), Fr(~ni), Fr(~tp) ]
+  --[ P3Start($I, $J, ~ni, ga) ]->
+  [ Out(<'p1', ~ni, ~tp, ga, mac(kaij, <'p1', $I, $J, ~ni, ~tp, ga>)>),
+    St3P1($I, $J, cred, ~x, ~ni, ga) ]
+
+/*
+  The responder's acceptance is placed here, where it verifies the request, rather
+  than at a fourth rule where it would consume the completion. The implementation
+  derives the responder's session key when the completion arrives; the model
+  derives it one step earlier, which only makes the key *available* sooner and
+  therefore never strengthens a secrecy conclusion. Mutual authentication is
+  unaffected: the responder authenticates the initiator when the request
+  verifies, and the initiator authenticates the responder in the completion rule.
+*/
+rule P3_P2_peer_response:
+  let kaij = kdf(cred, 'peerauth')
+      gb = 'g'^~y
+      sk = kdf(<cred, ga^y, <ni, ga, ~nj, gb>>, 'peersess')
+  in
+  [ !GotCred($J, $I, cred),
+    In(<'p1', ni, tp, ga, mac(kaij, <'p1', $I, $J, ni, tp, ga>)>),
+    Fr(~y), Fr(~nj) ]
+  --[ P3PeerAccept($J, $I, ni, ~nj, ga, gb), Secret($J, sk) ]->
+  [ Out(<'p2', ~nj, gb, mac(kaij, <'p2', $I, $J, ni, ~nj, ga, gb>)>) ]
+
+rule P3_P3_peer_complete:
+  let kaij = kdf(cred, 'peerauth')
+      ta1 = mac(kaij, <'p1', $I, $J, ni, tp, ga>)
+      sk = kdf(<cred, gb^x, <ni, ga, nj, gb>>, 'peersess')
+  in
+  [ St3P1($I, $J, cred, x, ni, ga),
+    In(<'p2', nj, gb, mac(kaij, <'p2', $I, $J, ni, nj, ga, gb>)>) ]
+  --[ P3InitAccept($I, $J, ni, nj, ga, gb), Secret($I, sk) ]->
+  [ Out(<'p3', mac(kaij, <'p3', ta1, nj, gb>)>) ]
+
+/* ======================================================================== */
+/* Adversary capabilities                                                   */
+/* ======================================================================== */
+
+/*
+  Physical capture: read non-volatile memory. Public identities, public helper
+  data, and every pair credential actually delivered to this node are exposed.
+  The silicon secret is not, and neither is any live session key: the key-secrecy
+  theorem is stated for sessions whose endpoints are not corrupted, so a rule
+  that handed over established keys would only restate its own hypothesis.
+  Persistent `!GotCred` facts mean repeated applications extract every credential
+  incident to the node, which is the N-1 exposure the paper states.
+*/
+rule Capture_device:
+  [ !Dev($I, tid, si, ch, hd), !GotCred($I, $P, cred) ]
+  --[ Corrupt($I) ]->
+  [ Out(<'nvm', tid, ch, hd>), Out(<'cred', cred>) ]
+
+/* Long-term reveal, for the forward-secrecy query. Emits the silicon secret. */
+rule Reveal_ltk:
+  [ !Dev($I, tid, si, ch, hd) ]
+  --[ RevealLtk($I) ]->
+  [ Out(<'silicon', si>) ]
+
+rule Reveal_gs_master:
+  [ !Gsmk(mkgs) ]
+  --[ RevealGsmk() ]->
+  [ Out(<'gsmk', mkgs>) ]
+
+/* ======================================================================== */
+/* Lemmas                                                                   */
+/* ======================================================================== */
+
+/*
+  Theorem 1 (Phase-2 mutual authentication), device direction. If the device
+  accepted a Phase-2 run, then the ground station really did emit the response
+  the device accepted, with the same nonces and the same ephemeral shares. The
+  condition is exactly the one under which this can fail: a revealed silicon
+  secret lets the adversary compute the MAC key and forge M2. Replay cannot
+  produce the same acceptance twice, because the device's own state is consumed
+  when it sends M3.
+*/
+lemma p2_agreement_uav:
+  "All I n1 n2 ga gb #i.
+     P2UavAccept(I, n1, n2, ga, gb) @ i
+   & not (Ex #r. RevealLtk(I) @ r)
+   ==> (Ex #j. P2GsReply(I, n1, n2, ga, gb) @ j & #j < #i
+        & not (Ex #k. P2GsReply(I, n1, n2, ga, gb) @ k & not (#k = #j)))"
+
+/*
+  Theorem 1, ground-station direction. The ground station accepts only a run
+  whose confirmation message verifies under the key derived from the registered
+  master key, so absent a reveal the device must have run the confirmation step,
+  with the same transcript.
+*/
+lemma p2_agreement_gs:
+  "All I n1 n2 ga gb #i.
+     P2GsAccept(I, n1, n2, ga, gb) @ i
+   & not (Ex #r. RevealLtk(I) @ r)
+   ==> (Ex #j. P2UavAccept(I, n1, n2, ga, gb) @ j & #j < #i
+        & not (Ex #k. P2UavAccept(I, n1, n2, ga, gb) @ k & not (#k = #j)))"
+
+/*
+  Theorem 2 (replay resistance). The ground station completes at most one Phase-2
+  run per device nonce. A verbatim replay of M1 is therefore refused: it can
+  produce a second reply, but never a second completion, because the confirmation
+  the completion consumes is bound to the single stored run state.
+*/
+lemma p2_replay_unique:
+  "All I n1 n2 ga gb n2b gb2 #i #j.
+     P2GsAccept(I, n1, n2, ga, gb) @ i
+   & P2GsAccept(I, n1, n2b, ga, gb2) @ j
+   & not (Ex #r. RevealLtk(I) @ r)
+   ==> #i = #j"
+
+/*
+  Theorem 3 (peer mutual authentication), initiator direction. The completion
+  token the initiator accepts binds both identities, both nonces, and both
+  ephemeral shares under the pair key, so it can only have come from the named
+  peer holding the same credential.
+*/
+lemma p3_agreement_init:
+  "All I J ni nj ga gb #i.
+     P3InitAccept(I, J, ni, nj, ga, gb) @ i
+   & not (Ex #r. Corrupt(I) @ r)
+   & not (Ex #r. Corrupt(J) @ r)
+   & not (Ex #r. RevealGsmk() @ r)
+   ==> (Ex #j. P3PeerAccept(J, I, ni, nj, ga, gb) @ j & #j < #i
+        & not (Ex #k. P3PeerAccept(J, I, ni, nj, ga, gb) @ k & not (#k = #j)))"
+
+/*
+  Theorem 3, responder direction: the responder answered a request that the
+  named peer actually issued with the same nonce and share.
+*/
+lemma p3_agreement_resp:
+  "All I J ni nj ga gb #i.
+     P3PeerAccept(J, I, ni, nj, ga, gb) @ i
+   & not (Ex #r. Corrupt(I) @ r)
+   & not (Ex #r. Corrupt(J) @ r)
+   & not (Ex #r. RevealGsmk() @ r)
+   ==> (Ex #j. P3Start(I, J, ni, ga) @ j & #j < #i)"
+
+/*
+  Corollary 1 (no PUF read-out oracle). The adversary learns a device's PUF
+  response only if it has taken that device's silicon secret. Nothing in the
+  protocol transmits the response, and the ground-station database holds the
+  derived key rather than the response itself, so a forged ground-station
+  challenge is not a query to the PUF.
+*/
+lemma puf_response_secrecy:
+  "All D x #i #j.
+     LtkSecret(D, x) @ i & K(x) @ j
+   ==> (Ex #r. RevealLtk(D) @ r)"
+
+/*
+  Theorem 4 (session-key secrecy). A session key becomes known only if a
+  long-term secret has been revealed. Capture of a device's memory is not
+  enough: the credentials it yields do not help against a key that also folds in
+  the ephemeral Diffie-Hellman secret. Corrupting both endpoints of a session is
+  outside the theorem, which is why this lemma is conditioned on reveal rather
+  than on capture.
+
+  One modelling point the paper's prose does not state, recorded here because it
+  is what makes the lemma meaningful rather than vacuous. Tamarin's builtin
+  diffie-hellman is the *ideal* theory: the adversary can form g^(ab) only by
+  holding a or b, and neither ephemeral scalar is ever emitted. Consequently the
+  session key is unreachable outright in this model, and the disjunction below is
+  a strict weakening included to mirror the paper's conditioned statement. The
+  fine-grained argument -- that a reveal alone does not recover the key because
+  gap-CDH protects the erased scalars -- is the computational Theorem 4, not this
+  lemma, exactly as the model header says.
+*/
+lemma session_key_secrecy:
+  "All I x #i #j.
+     Secret(I, x) @ i & K(x) @ j
+   ==> (Ex #r. RevealLtk(I) @ r) | (Ex #r. RevealGsmk() @ r)"
+
+/*
+  Corollary 2 (delegation is credential-bound). A Phase 3 initiator emits its
+  first message only under a credential it genuinely holds, and the credential
+  names an unordered pair that includes the initiator. The two disjuncts are the
+  two orientations of the one credential, so the fact is a single per-pair fact
+  rather than two independent ones. This is the piece the ideal AEAD theory
+  cannot supply on its own: it is what binds an accepted peer handshake to a
+  credential the node was actually issued, so capturing a third node yields
+  nothing with which to answer a pair that does not include it.
+*/
+lemma p3_initiator_delegates_own_credential:
+  "All I J ni ga #i.
+     P3Start(I, J, ni, ga) @ i
+   ==> (Ex k c #j. PairCred(I, J, c) @ j & !GotCred(I, J, c) @ k)
+     | (Ex k c #j. PairCred(J, I, c) @ j & !GotCred(I, J, c) @ k)
+     | (Ex m. Corrupt(I) @ m & m < #i)"
+
+/*
+  Theorem 5 (perfect forward secrecy). This is Theorem 4 with the order of events
+  pinned down: any long-term reveal that could explain a leaked session key must
+  have happened before that session began. A reveal after a session closes does
+  not help, because recovering the key would require the Diffie-Hellman secret
+  from the recorded, authenticated shares, and the exchange is mandatory so there
+  is no non-ephemeral fallback.
+
+  Note the earlier version of this lemma left the revealed device as a free
+  variable bound only by the premise, so a model with two reveals -- one before
+  the session and one after -- would have falsified the ordering claim even where
+  the key was leaked only by the earlier one. The owner is now fixed to the
+  session owner I, which is the honest statement of what is being proved.
+*/
+lemma forward_secrecy:
+  "All I x #i #j.
+     Secret(I, x) @ i & K(x) @ j
+   ==> (Ex #r. RevealLtk(I) @ r & #r < #i)
+     | (Ex #r. RevealGsmk() @ r & #r < #i)"
+
+/*
+  Theorem 6 (physical capture resistance). A per-pair credential reaches the
+  adversary only through capture of one of the two devices that hold it, or
+  through the ground-station master key from which all credentials are derived.
+  Capturing a third node is therefore of no use against a pair that does not
+  involve it, which is the N-1 exposure bound.
+*/
+lemma credential_isolation:
+  "All A B c #i #j.
+     PairCred(A, B, c) @ i & K(c) @ j
+   ==> (Ex #r. Corrupt(A) @ r) | (Ex #r. Corrupt(B) @ r)
+     | (Ex #r. RevealGsmk() @ r)"
+
+/*
+  Theorem 2, peer half: no reflection. With distinct type tags under one key, the
+  completion the initiator consumes ('p3') can only have been minted after a
+  response ('p2'), which in turn can only follow a request ('p1'). Reflection
+  would require the initiator's own request token to be accepted as the response,
+  which would make the initiator's acceptance precede the responder's -- exactly
+  the ordering this lemma forbids. The statement is therefore an ordering between
+  the two acceptance facts, which is the form the perfect Dolev-Yao theory can
+  actually test.
+
+  The previous version (`P3InitAccept(I,J,...) implies not
+  P3PeerAccept(I,J,...)`) was unsound: it swapped the roles, so the second fact
+  was not the reflection of the first at all (that would be P3PeerAccept(J,I,...)).
+  It asserted a property of a fact the protocol never produces and would have
+  passed for the wrong reason.
+*/
+lemma p3_type_tag_separation:
+  "All I J ni nj ga gb #i #k.
+     P3InitAccept(I, J, ni, nj, ga, gb) @ i
+   & P3PeerAccept(J, I, ni, nj, ga, gb) @ k
+   & not (Ex #r. Corrupt(I) @ r)
+   & not (Ex #r. Corrupt(J) @ r)
+   & not (Ex #r. RevealGsmk() @ r)
+   ==> #k < #i"
+
+end

@@ -47,11 +47,14 @@ Bytes XorArbiterPuf::evaluateIdeal(const Bytes& challenge, size_t bitCount) cons
     requireValidBitCount(bitCount);
     ScopedTimer timer(counters_, Primitive::PufEval, challenge.size());
     Bytes out(bytesForBits(bitCount), 0);
+    if (bitCount == 0) return out;
+    // One squeezed stream feeds every chain, as in a real XOR APUF where all
+    // chains see the same sub-challenge.
+    const Bytes subs = subStream(challenge, bitCount);
     for (size_t j = 0; j < bitCount; ++j) {
-        // One sub-challenge derivation feeds every chain, as in a real XOR APUF.
-        const Bytes sub = deriveSubChallenge(challenge, static_cast<uint16_t>(j));
+        const uint8_t* sub = subs.data() + 16 * j;
         bool bit = false;
-        for (const auto& c : chains_) bit ^= (c->deltaForSubChallenge(sub) > 0.0);
+        for (const auto& c : chains_) bit ^= (c->deltaForSubChallengeRaw(sub) > 0.0);
         setBit(out, j, bit);
     }
     return out;
@@ -62,11 +65,13 @@ Bytes XorArbiterPuf::evaluateNoisy(const Bytes& challenge, size_t bitCount,
     requireValidBitCount(bitCount);
     ScopedTimer timer(counters_, Primitive::PufEval, challenge.size());
     Bytes out(bytesForBits(bitCount), 0);
+    if (bitCount == 0) return out;
+    const Bytes subs = subStream(challenge, bitCount);
     for (size_t j = 0; j < bitCount; ++j) {
-        const Bytes sub = deriveSubChallenge(challenge, static_cast<uint16_t>(j));
+        const uint8_t* sub = subs.data() + 16 * j;
         bool bit = false;
         for (const auto& c : chains_) {
-            const double delta = c->deltaForSubChallenge(sub);
+            const double delta = c->deltaForSubChallengeRaw(sub);
             bit ^= ((delta + c->noiseSigma() * rng.normal()) > 0.0);
         }
         setBit(out, j, bit);
@@ -82,12 +87,13 @@ double XorArbiterPuf::measureBer(const Bytes& challenge, size_t bitCount,
     // arithmetic and same DRBG draw order as evaluateNoisy.
     std::vector<std::vector<double>> deltas(bitCount);
     std::vector<bool> ideal(bitCount, false);
+    const Bytes subs = subStream(challenge, bitCount);
     for (size_t j = 0; j < bitCount; ++j) {
-        const Bytes sub = deriveSubChallenge(challenge, static_cast<uint16_t>(j));
+        const uint8_t* sub = subs.data() + 16 * j;
         deltas[j].resize(chains_.size());
         bool bit = false;
         for (size_t c = 0; c < chains_.size(); ++c) {
-            deltas[j][c] = chains_[c]->deltaForSubChallenge(sub);
+            deltas[j][c] = chains_[c]->deltaForSubChallengeRaw(sub);
             bit ^= (deltas[j][c] > 0.0);
         }
         ideal[j] = bit;

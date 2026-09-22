@@ -123,10 +123,14 @@ void GroundStationNodeInetApp::socketDataArrived(UdpSocket*, Packet* packet) {
     if (decoded.type == protocol::MessageType::P2_M1_AUTH_REQUEST) {
         ++attemptsM1_;
         const protocol::StepResult r = proto_->handleM1(decoded, nowMs);
-        if (r.ok) sendMessage(r.reply, srcAddr, srcPort);
+        if (r.ok) {
+            gsComputeMs_ += r.timing.computeMs;
+            sendMessage(r.reply, srcAddr, srcPort);
+        }
     } else if (decoded.type == protocol::MessageType::P2_M3_UAV_CONFIRM) {
         const protocol::StepResult r = proto_->handleM3(decoded, nowMs);
         if (r.ok) {
+            gsComputeMs_ += r.timing.computeMs;
             ++successesM4_;
             sendMessage(r.reply, srcAddr, srcPort);
         }
@@ -146,6 +150,9 @@ void GroundStationNodeInetApp::finish() {
     recordScalar("inetM1Attempts", static_cast<double>(attemptsM1_));
     recordScalar("inetM4Successes", static_cast<double>(successesM4_));
     recordScalar("inetReplayHits", static_cast<double>(proto_->replayHits()));
+    // Ground-station-side compute for Phase 2, host-clock, same convention as
+    // the UAV side's inetPhase2ComputeMs.
+    recordScalar("inetGsComputeMs", gsComputeMs_);
     ApplicationBase::finish();
 }
 

@@ -53,6 +53,7 @@ class GroundStationNodeInetApp : public inet::ApplicationBase, public inet::UdpS
 
     long attemptsM1_ = 0;
     long successesM4_ = 0;
+    double gsComputeMs_ = 0.0;
 };
 
 } // namespace inet_apps

@@ -25,8 +25,12 @@ from export_omnet_csv import export  # noqa: E402
 
 ALL_CONFIGS = [
     "StadiumSHA3", "StadiumSPONGENT", "Baseline5UAV", "Swarm20",
-    "ArbiterPuf", "HighNoise", "MobilityLinear", "MobilityRandomWalk",
+    "ArbiterPuf", "HighNoise",
 ]
+# Mobility is on the INET track now (simulations/omnetpp_inet.ini): the
+# idealised medium's propagation term changes by nanoseconds over a handshake,
+# so its mobility configurations measured no effect by construction. They were
+# removed rather than kept as a null result.
 
 # Run separately (different `repeat` counts, so a shared --runs N would be
 # wrong for at least one group): NoiseSweep (repeat=3) and the four real
@@ -156,6 +160,17 @@ def main():
         print("\nexported:")
         for key in sorted(written):
             print("  %-18s %d rows" % (key, written[key]))
+        # The INET track writes its own CSV from its own scalars; refresh it when
+        # any of its configurations ran, and rebuild the unified comparison
+        # table from all the per-topic files. Both are best-effort: a missing
+        # INET build must not fail a main-track run.
+        cfg_set = {r["config"] for r in rows if r["status"] == "ok"}
+        if any(c.startswith("Inet") for c in cfg_set):
+            import export_inet_csv
+            export_inet_csv.export(root / "simulations" / "results", tuple(
+                sorted(c for c in cfg_set if c.startswith("Inet"))))
+        import export_comparison_csv
+        export_comparison_csv.export(root / "simulations" / "results")
     except Exception as exc:  # noqa: BLE001
         print("export failed: %s" % exc, file=sys.stderr)
         return 1

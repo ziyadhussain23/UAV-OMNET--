@@ -12,9 +12,10 @@ simple UavNode
 {
     parameters:
         int uavId;
-        // @mutable: the mobility models below move a UAV by writing these at
-        // runtime (WirelessMedium re-reads them fresh on every message, so no
-        // other code needs to change for that to take effect).
+        // Static perimeter position. WirelessMedium reads these on every
+        // message to compute propagation delay, so they stay @mutable even
+        // though nothing on this track writes them: they are the same two
+        // parameters the INET track's mobility attaches to.
         double xpos @unit(m) @mutable = default(0m);
         double ypos @unit(m) @mutable = default(0m);
 
@@ -32,16 +33,6 @@ simple UavNode
         double peerAuthStartTime @unit(s) = default(10s);
         bool fullMesh = default(true);
         int timestampWindowMs = default(5000);
-
-        // "static" (perimeter position, never moves) | "linear" (constant
-        // velocity, reflects off the field boundary) | "randomwalk" (new
-        // random heading each update tick, reflects off the field boundary)
-        string mobilityModel = default("static");
-        double mobilitySpeedMps = default(5.0);
-        double mobilityHeadingDeg = default(45.0);
-        double mobilityUpdateIntervalMs = default(100.0);
-        double fieldWidthM @unit(m) = default(500m);
-        double fieldHeightM @unit(m) = default(300m);
 
         // "hardened" (the specified protocol) | "legacy" (the audited protocol,
         // used only as the security control arm)

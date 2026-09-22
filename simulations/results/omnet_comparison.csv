@@ -1,0 +1,13 @@
+config,family,clock_model,scheme,n_runs,success_rate,n_records,compute_ms,compute_ci95,net_ms,net_ci95,wall_ms,wall_ci95,reported_latency_ms,reported_ci95,notes
+ArbiterPuf,noise,two,sha3,30,1.0,300,1.2741,0.009,1.0737,0.002,1.5028,0.0023,2.3478,0.0111,"realistic PUF model, 3% BER"
+Baseline5UAV,latency,two,sha3,30,1.0,150,0.4575,0.0034,0.7142,0.0027,1.1442,0.0039,1.1717,0.0061,swarm size N=5
+BaselineECDSA,baseline,two,ecdsa-p256,30,1.0,300,0.341,0.0051,0.4524,0.002,0.9109,0.0023,0.7934,0.0072,ECDSA-P256-signed ephemeral DH
+BaselineRSA,baseline,two,rsa2048,30,1.0,300,1.0685,0.0045,0.699,0.002,1.4042,0.0023,1.7674,0.0065,RSA-2048-signed ephemeral DH
+HighNoise,noise,two,sha3,30,0.796667,300,1.0573,0.0506,0.8558,0.0359,1.1972,0.0499,1.9131,0.0866,PUF BER forced to 5%
+Inet80211SHA3,inet,one,,30,1.0,300,0.4168,0.0184,11.4547,0.3434,11.8715,0.341,11.8715,0.341,"real 802.11 CSMA/CA, static"
+InetMobilityLinearSHA3,inet,one,,30,0.996667,300,0.4255,0.0218,11.7156,0.3971,12.1411,0.3983,12.1411,0.3983,"real 802.11 CSMA/CA, moving linearly"
+InetMobilityRandomWalkSHA3,inet,one,,30,0.996667,300,0.4081,0.015,11.4827,0.3875,11.8908,0.3909,11.8908,0.3909,"real 802.11 CSMA/CA, random waypoints"
+NoiseSweep,noise,two,sha3,63,0.853968,630,2.0694,0.3414,0.917,0.0913,1.2861,0.128,2.9864,0.4327,BER swept x three FE profiles
+StadiumSHA3,latency,two,sha3,30,1.0,300,0.5693,0.0361,1.0737,0.002,1.5028,0.0023,1.6429,0.0381,"reference: N=10, software suite"
+StadiumSPONGENT,latency,two,spongent,30,1.0,300,3.4564,0.1015,1.079,0.002,1.5082,0.0023,4.5354,0.1036,suite swapped to constrained-hardware
+Swarm20,latency,two,sha3,30,0.998333,600,0.487,0.0234,1.7899,0.0061,2.2184,0.0078,2.2769,0.0295,swarm size N=20

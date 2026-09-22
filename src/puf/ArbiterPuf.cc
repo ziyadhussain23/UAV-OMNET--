@@ -9,7 +9,6 @@ namespace puf {
 
 using core::bytesForBits;
 using core::fromString;
-using core::getBit;
 using core::setBit;
 using crypto::Primitive;
 using crypto::ScopedTimer;
@@ -39,38 +38,45 @@ ArbiterPuf::ArbiterPuf(const Bytes& deviceSeed) {
 
 void ArbiterPuf::setNoiseSigma(double sigma) { sigma_ = std::max(0.0, sigma); }
 
-double ArbiterPuf::deltaForSubChallenge(const Bytes& subChallenge) const {
-    if (subChallenge.size() * 8 < kStages)
-        throw std::invalid_argument("ArbiterPuf: sub-challenge shorter than 128 bits");
-
+double ArbiterPuf::deltaForSubChallengeRaw(const uint8_t* sub) const {
     // phi[i] = prod_{k=i..127} (1-2c[k]); build it with one running product,
-    // walking the stages from the arbiter end back to the input.
+    // walking the stages from the arbiter end back to the input. Bits are read
+    // MSB-first, exactly as core::getBit reads them.
     double delta = w_[kStages];
     double parity = 1.0;
     for (size_t i = kStages; i-- > 0;) {
-        parity = getBit(subChallenge, i) ? -parity : parity;
+        parity = ((sub[i >> 3] >> (7 - (i & 7))) & 1) ? -parity : parity;
         delta += w_[i] * parity;
     }
     return delta;
+}
+
+double ArbiterPuf::deltaForSubChallenge(const Bytes& subChallenge) const {
+    if (subChallenge.size() * 8 < kStages)
+        throw std::invalid_argument("ArbiterPuf: sub-challenge shorter than 128 bits");
+    return deltaForSubChallengeRaw(subChallenge.data());
 }
 
 void ArbiterPuf::computeDeltas(const Bytes& challenge, size_t bitCount,
                                std::vector<double>& out) const {
     requireValidBitCount(bitCount);
     out.resize(bitCount);
+    if (bitCount == 0) return;
+    // One squeezed stream supplies every sub-challenge; slicing it is where the
+    // per-bit SHA3-256 of deriveSubChallenge used to go.
+    const Bytes subs = subStream(challenge, bitCount);
     for (size_t j = 0; j < bitCount; ++j)
-        out[j] = deltaForSubChallenge(deriveSubChallenge(challenge, static_cast<uint16_t>(j)));
+        out[j] = deltaForSubChallengeRaw(subs.data() + 16 * j);
 }
 
 Bytes ArbiterPuf::evaluateIdeal(const Bytes& challenge, size_t bitCount) const {
     requireValidBitCount(bitCount);
     ScopedTimer timer(counters_, Primitive::PufEval, challenge.size());
     Bytes out(bytesForBits(bitCount), 0);
-    for (size_t j = 0; j < bitCount; ++j) {
-        const double delta =
-            deltaForSubChallenge(deriveSubChallenge(challenge, static_cast<uint16_t>(j)));
-        setBit(out, j, delta > 0.0);
-    }
+    if (bitCount == 0) return out;
+    const Bytes subs = subStream(challenge, bitCount);
+    for (size_t j = 0; j < bitCount; ++j)
+        setBit(out, j, deltaForSubChallengeRaw(subs.data() + 16 * j) > 0.0);
     return out;
 }
 
@@ -79,9 +85,10 @@ Bytes ArbiterPuf::evaluateNoisy(const Bytes& challenge, size_t bitCount,
     requireValidBitCount(bitCount);
     ScopedTimer timer(counters_, Primitive::PufEval, challenge.size());
     Bytes out(bytesForBits(bitCount), 0);
+    if (bitCount == 0) return out;
+    const Bytes subs = subStream(challenge, bitCount);
     for (size_t j = 0; j < bitCount; ++j) {
-        const double delta =
-            deltaForSubChallenge(deriveSubChallenge(challenge, static_cast<uint16_t>(j)));
+        const double delta = deltaForSubChallengeRaw(subs.data() + 16 * j);
         // The noise is on the delay difference. One draw per bit whatever sigma
         // is, so the stream position does not depend on the noise setting.
         const double noise = sigma_ * rng.normal();

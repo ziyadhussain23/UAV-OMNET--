@@ -157,8 +157,7 @@ NO_LITERATURE_FIGURE = {
            "this composed construction.",
     "extract": "Fuzzy-extractor Extract step (strong extractor over the PUF "
                "response): no published energy figure found.",
-    "hash160": "Never invoked as a standalone in-protocol primitive (see the "
-               "same finding already documented for the timing table in "
-               "COMPLETE_ANALYSIS.md) -- no per-call count exists to attach "
-               "an energy figure to.",
+    "hash160": "Never invoked as a standalone in-protocol primitive (the same "
+               "finding as the timing table, see README.md section 4) -- no "
+               "per-call count exists to attach an energy figure to.",
 }

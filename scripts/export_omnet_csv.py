@@ -435,8 +435,12 @@ def build_legacy_summary(p2, p3, rel):
         by_config.setdefault(row["config"], {"p2": [], "p3": [], "rel": []})["p2"].append(row)
     for row in p3:
         by_config.setdefault(row["config"], {"p2": [], "p3": [], "rel": []})["p3"].append(row)
+    # Only the latency family's reliability rows: the shared summary answers the
+    # same question as phase2/phase3, so a noise/mobility/attack config's row
+    # here would re-mix what the per-file routing just separated.
     for row in rel:
-        by_config.setdefault(row["config"], {"p2": [], "p3": [], "rel": []})["rel"].append(row)
+        if row["config"] in LATENCY_CONFIGS:
+            by_config.setdefault(row["config"], {"p2": [], "p3": [], "rel": []})["rel"].append(row)
 
     out = []
     for config in sorted(by_config):
@@ -485,34 +489,65 @@ def assign_indices(rows):
         row["idx"] = i
 
 
+# ---------------------------------------------------------------------------
+# Per-file config routing
+#
+# Each CSV answers one question, so each is written from only the configs that
+# bear on it. The shared phase1/2/3/summary files carry the latency family;
+# the noise family (arbiter-model reliability configs) gets its own file; the
+# mobility, baseline, and security configs already have dedicated exporters or
+# files and are kept out of the shared latency tables entirely.
+# ---------------------------------------------------------------------------
+
+# Phase 1/2/3, summary: the reference, suite, and scaling family.
+LATENCY_CONFIGS = {"StadiumSHA3", "StadiumSPONGENT", "Baseline5UAV", "Swarm20"}
+
+# Noise family: the arbiter-model reliability configs (3% / 5% BER and the
+# BER x FE-profile sweep). These share the phase2 schema but answer "where does
+# the fuzzy extractor start to fail", not "what does the handshake cost".
+NOISE_CONFIGS = {"ArbiterPuf", "HighNoise", "NoiseSweep"}
+
+# Mobility family: the two moving-swarm configs.
+MOBILITY_CONFIGS = {"MobilityLinear", "MobilityRandomWalk"}
+
+
 def export(results_dir, include_configs=None):
     results_dir = Path(results_dir).resolve()
     sca_files = sorted(results_dir.glob("*.sca"))
     if not sca_files:
         raise FileNotFoundError("no .sca files in %s" % results_dir)
 
-    p1, p2, p3, prim, rel, mob = [], [], [], [], [], []
+    p1, p2, p3, prim, rel = [], [], [], [], []
+    noise = []
     for path in sca_files:
         run = parse_sca(path)
         if include_configs and run["config"] not in include_configs:
             continue
-        p1 += build_phase1(run)
-        p2 += build_phase2(run)
-        p3 += build_phase3(run)
+        cfg = run["config"]
+        if cfg in LATENCY_CONFIGS:
+            p1 += build_phase1(run)
+            p2 += build_phase2(run)
+            p3 += build_phase3(run)
+        if cfg in NOISE_CONFIGS:
+            noise += build_phase2(run)
         prim += build_primitives(run)
         rel += build_reliability(run)
-        mob += build_mobility(run)
+        # No mobility rows are produced on this track at all: mobility moved to
+        # the INET track (omnet_inet_latency.csv), where it changes the real
+        # 802.11 channel. build_mobility() is kept because the position scalars
+        # it reads are still recorded and a future longitudinal study would want
+        # them, but nothing on this track configures motion any more.
 
     # Catches a genuinely empty/mistaken glob (wrong directory, typo'd config
     # name); checking only p2/p3 would also reject a valid non-PUF-protocol
     # export (e.g. the RSA/ECDSA baseline configs, which have real primitive
     # and reliability data but no phase2/phase3 rows at all).
-    if not p1 and not p2 and not p3 and not prim and not rel:
+    if not p1 and not p2 and not p3 and not prim and not rel and not noise:
         raise RuntimeError("no matching runs found (configs=%s)" % include_configs)
 
     # Assign idx once, globally, before any split file is written, so it stays a
     # stable join key everywhere.
-    for rows in (p1, p2, p3, prim, rel, mob):
+    for rows in (p1, p2, p3, prim, rel, noise):
         assign_indices(rows)
 
     written = {}
@@ -523,8 +558,8 @@ def export(results_dir, include_configs=None):
                                       PRIMITIVE_COLS, prim)
     written["reliability"] = write_csv(results_dir / "omnet_reliability.csv",
                                       RELIABILITY_COLS, rel)
-    written["mobility"] = write_csv(results_dir / "omnet_mobility_results.csv",
-                                    MOBILITY_COLS, mob)
+    written["noise"] = write_csv(results_dir / "omnet_noise_results.csv",
+                                 PHASE2_COLS, noise)
 
     summary_ci = build_summary_ci({"phase2": p2, "phase3": p3})
     written["summary_ci"] = write_csv(results_dir / "omnet_summary_ci.csv",
